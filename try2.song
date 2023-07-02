@@ -1,0 +1,272 @@
+musicchip tune
+version 1
+
+song 00 01 00 02 00 03 00 04 00
+
+pattern 01 00 25 01 00 00 00 00
+pattern 01 04 25 02 00 00 00 00
+pattern 01 07 25 01 00 00 00 00
+pattern 01 08 25 01 00 00 00 00
+pattern 01 0b 25 01 00 00 00 00
+pattern 01 0c 25 02 00 00 00 00
+pattern 01 0d 25 01 00 00 00 00
+pattern 01 10 25 01 00 00 00 00
+pattern 01 13 25 01 00 00 00 00
+pattern 01 14 25 02 00 00 00 00
+pattern 01 15 25 02 00 00 00 00
+pattern 01 17 25 02 00 00 00 00
+pattern 01 18 25 01 00 00 00 00
+pattern 01 19 25 02 00 00 00 00
+pattern 01 1b 25 02 00 00 00 00
+pattern 01 1c 25 02 00 00 00 00
+pattern 01 1d 25 01 00 00 00 00
+pattern 01 1e 25 01 00 00 00 00
+pattern 02 00 16 03 00 00 00 00
+pattern 02 01 ff 03 00 00 00 00
+pattern 02 02 0a 03 00 00 00 00
+pattern 02 03 ff 03 00 00 00 00
+pattern 02 04 19 03 00 00 00 00
+pattern 02 05 18 03 00 00 00 00
+pattern 02 06 19 03 00 00 00 00
+pattern 02 07 ff 03 00 00 00 00
+pattern 02 08 16 03 00 00 00 00
+pattern 02 0a 0a 03 00 00 00 00
+pattern 02 0b ff 03 00 00 00 00
+pattern 02 0c 19 03 00 00 00 00
+pattern 02 0d 22 03 00 00 00 00
+pattern 02 0e 21 03 00 00 00 00
+pattern 02 0f 20 03 00 00 00 00
+pattern 02 10 1f 03 00 00 00 00
+pattern 02 11 ff 03 00 00 00 00
+pattern 02 12 14 03 00 00 00 00
+pattern 02 13 11 03 00 00 00 00
+pattern 02 14 ff 03 00 00 00 00
+pattern 02 15 0a 03 00 00 00 00
+pattern 02 16 ff 03 00 00 00 00
+pattern 02 17 ff 03 00 00 00 00
+pattern 02 18 11 03 00 00 00 00
+pattern 02 19 ff 03 00 00 00 00
+pattern 02 1a 0f 03 00 00 00 00
+pattern 02 1b 15 03 00 00 00 00
+pattern 02 1c 19 03 00 00 00 00
+pattern 02 1d 18 03 00 00 00 00
+pattern 02 1e 20 03 00 00 00 00
+pattern 02 1f 1d 03 00 00 00 00
+pattern 03 00 ff 03 00 00 00 00
+pattern 03 04 2e 03 00 00 00 00
+pattern 03 05 ff 03 00 00 00 00
+pattern 03 06 2e 03 00 00 00 00
+pattern 03 07 ff 03 00 00 00 00
+pattern 03 08 30 03 00 00 00 00
+pattern 03 0a 22 03 00 00 00 00
+pattern 03 0b ff 03 00 00 00 00
+pattern 03 0e 29 03 00 00 00 00
+pattern 03 0f ff 03 00 00 00 00
+pattern 03 10 27 03 00 00 00 00
+pattern 03 11 29 03 00 00 00 00
+pattern 03 12 2d 03 00 00 00 00
+pattern 03 13 35 03 00 00 00 00
+pattern 03 14 2d 03 00 00 00 00
+pattern 03 16 ff 03 00 00 00 00
+pattern 03 18 27 03 00 00 00 00
+pattern 03 19 25 03 00 00 00 00
+pattern 03 1a 29 03 00 00 00 00
+pattern 03 1b 2a 03 00 00 00 00
+pattern 03 1c 2d 03 00 00 00 00
+pattern 03 1d ff 03 00 00 00 00
+pattern 03 1e 29 03 00 00 00 00
+pattern 04 00 49 04 00 00 00 00
+pattern 04 02 48 04 00 00 00 00
+pattern 04 03 44 04 00 00 00 00
+pattern 04 06 46 04 00 00 00 00
+pattern 04 08 49 04 00 00 00 00
+pattern 04 0a 48 04 00 00 00 00
+pattern 04 0b 45 04 00 00 00 00
+pattern 04 0e 3f 04 00 00 00 00
+pattern 04 10 41 04 00 00 00 00
+pattern 04 11 42 04 00 00 00 00
+pattern 04 12 41 04 00 00 00 00
+pattern 04 13 42 04 00 00 00 00
+pattern 04 14 41 04 00 00 00 00
+pattern 04 16 3f 04 00 00 00 00
+pattern 04 18 3d 04 00 00 00 00
+pattern 04 19 3f 04 00 00 00 00
+pattern 04 1a 41 04 00 00 00 00
+pattern 04 1b 42 04 00 00 00 00
+pattern 04 1c 41 04 00 00 00 00
+pattern 04 1e 3c 04 00 00 00 00
+
+instrumentName 01 KICK
+instrument 01 00 2b 31 
+instrument 01 01 77 0c 
+instrument 01 02 64 01 
+instrument 01 03 76 08 
+instrument 01 04 74 01 
+instrument 01 05 77 04 
+instrument 01 06 76 0f 
+instrument 01 07 73 4f 
+instrument 01 08 66 f0 
+instrument 01 09 74 10 
+instrument 01 0a 30 00 
+instrument 01 0b 76 00 
+instrumentName 02 SNARE
+instrument 02 00 2b 31 
+instrument 02 01 77 08 
+instrument 02 02 64 0f 
+instrument 02 03 76 10 
+instrument 02 04 74 01 
+instrument 02 05 73 02 
+instrumentName 03 BASS
+instrument 03 00 2b 31 
+instrument 03 01 77 01 
+instrument 03 02 64 08 
+instrument 03 03 76 21 
+instrumentName 04 PING
+instrument 04 00 2b 31 
+instrument 04 01 77 10 
+instrument 04 02 76 30 
+instrument 04 03 64 08 
+
+volume 01 00 01
+volume 01 01 0e
+volume 01 02 0e
+volume 01 03 0b
+volume 01 04 09
+volume 01 05 07
+volume 01 06 06
+volume 01 07 08
+volume 01 08 07
+volume 01 09 05
+volume 01 0a 03
+volume 01 0b 02
+volume 01 0c 02
+volume 01 0d 02
+volume 01 0e 01
+volume 01 0f 01
+volume 01 10 01
+volume 01 11 00
+volume 01 12 00
+volume 01 13 00
+volume 01 14 00
+volume 01 15 00
+volume 02 00 0c
+volume 02 01 0d
+volume 02 02 0e
+volume 02 03 0f
+volume 02 04 0f
+volume 02 05 0f
+volume 02 06 0e
+volume 02 07 0d
+volume 02 08 0d
+volume 02 09 0d
+volume 02 0a 0d
+volume 02 0b 0d
+volume 02 0c 0c
+volume 02 0d 0c
+volume 02 0e 0c
+volume 02 0f 0c
+volume 02 10 0d
+volume 02 11 0d
+volume 02 12 0d
+volume 02 13 0d
+volume 02 14 0d
+volume 02 15 0e
+volume 02 16 0e
+volume 02 17 0e
+volume 02 18 0e
+volume 02 19 0d
+volume 02 1a 0d
+volume 02 1b 0d
+volume 02 1c 0c
+volume 02 1d 0b
+volume 02 1e 0a
+volume 02 1f 09
+volume 02 20 08
+volume 02 21 08
+volume 02 22 07
+volume 02 23 07
+volume 02 24 06
+volume 02 25 05
+volume 02 26 04
+volume 02 27 03
+volume 02 28 02
+volume 02 29 02
+volume 02 2a 01
+volume 02 2b 00
+volume 03 00 0f
+volume 03 01 0f
+volume 03 02 0f
+volume 03 03 0e
+volume 03 04 0b
+volume 03 05 08
+volume 03 06 06
+volume 03 07 04
+volume 03 08 04
+volume 03 09 02
+volume 03 0a 02
+volume 03 0b 03
+volume 03 0c 05
+volume 03 0d 04
+volume 03 0e 03
+volume 03 0f 02
+volume 03 10 02
+volume 03 11 02
+volume 03 12 01
+volume 03 13 01
+volume 03 14 01
+volume 03 15 00
+volume 03 16 00
+volume 03 17 00
+volume 03 18 00
+volume 03 19 00
+volume 03 1a 00
+volume 03 1b 00
+volume 03 1c 00
+volume 03 1d 00
+volume 03 1e 00
+volume 03 1f 00
+volume 03 20 00
+volume 03 21 00
+volume 03 22 00
+volume 03 23 00
+volume 03 24 00
+volume 03 25 00
+volume 03 26 00
+volume 03 27 00
+volume 03 28 00
+volume 03 29 00
+
+
+
+wave 01 00 09
+wave 01 01 0c
+wave 01 02 0c
+wave 01 03 0d
+wave 01 04 0e
+wave 01 05 0e
+wave 01 06 0f
+wave 01 07 0f
+wave 01 08 0f
+wave 01 09 0e
+wave 01 0a 0e
+wave 01 0b 0d
+wave 01 0c 0c
+wave 01 0d 0b
+wave 01 0e 0a
+wave 01 0f 09
+wave 01 10 05
+wave 01 11 04
+wave 01 12 03
+wave 01 13 03
+wave 01 14 02
+wave 01 15 02
+wave 01 16 01
+wave 01 17 01
+wave 01 18 01
+wave 01 19 00
+wave 01 1a 0e
+wave 01 1b 00
+wave 01 1c 0e
+wave 01 1d 00
+wave 01 1e 0e
+wave 01 1f 00

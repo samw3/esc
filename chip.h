@@ -4,6 +4,9 @@
 
 #include "types.h"
 
+struct TextEdit;
+typedef struct TextEdit TextEdit;
+
 #define SETLO(v, x) v = ((v) & 0xf0) | (x)
 #define SETHI(v, x) v = ((v) & 0x0f) | ((x) << 4)
 #define GETLO(v) ((v) & 0xf)
@@ -16,7 +19,7 @@ typedef enum {
 } ChipDataType;
 
 typedef enum {
-  CMDT_STRING, CMDT_HEX, CMDT_DECIMAL
+  CMDT_STRING, CMDT_HEX, CMDT_DECIMAL, CMDT_OPTIONS
 } ChipMetaDataType;
 
 typedef enum {
@@ -29,8 +32,9 @@ typedef struct {
   int min;
   int max;
   int value;
-  char *csvOptions;
+  const char *options[256];
   char stringValue[40];
+  TextEdit *textEdit;
 } ChipMetaDataEntry;
 
 typedef struct {

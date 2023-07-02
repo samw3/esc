@@ -543,8 +543,9 @@ int sSelectedTableKind = 0;
 u16 *sSelectedTable = NULL;
 int sTableX = 0;
 Rect sTableRect = {0};
+int sMetaDataY = 0;
 TrackerState sTrackerState = TRACKER_EDIT_SONG;
-bool sbEditing = true;
+bool sbEditing = false;
 bool sbShowKeys = false;
 
 void tracker_onChangeInstrumentName(TextEdit *_te, TrackerTextEditKey _exitKey) {
@@ -1146,21 +1147,49 @@ int tracker_drawMetaData(int _x, int _y, int _width) {
   }
   titleWidth++;
 
-  for (int i = 0; i < sChip->getNumMetaData(); ++i) {
-    TextEdit_new(
-        &sTextEditRoot_Editor,
-        _x + titleWidth, _y + i + 1,
-        40, _width,
-        true, false, "",
-        tracker_onChangeMetaData,
-        sChip->getMetaData(i)
-    );
+  // Highlight row
+  con_setAttrib(0x4F);
+  for (int i = 0; i < _width; ++i) {
+    con_setAttribXY(_x + i, _y + sMetaDataY + 1, 0x4F);
   }
 
   for (int i = 0; i < sChip->getNumMetaData(); ++i) {
     ChipMetaDataEntry *metaData = sChip->getMetaData(i);
-    con_printXY(_x, _y + i + 1, metaData->name);
+    if (sMetaDataY == i) {
+      con_setAttrib(0x4F);
+    } else {
+      con_setAttrib(0x07);
+    }
+    int len = strlen(metaData->name);
+    con_printXY(_x + titleWidth - len - 1, _y + i + 1, metaData->name);
     con_putc(':');
+    switch (metaData->type) {
+      case CMDT_STRING: {
+        if (metaData->textEdit == NULL) {
+          metaData->textEdit = TextEdit_new(
+              &sTextEditRoot_Editor,
+              _x + titleWidth, _y + i + 1,
+              40, _width,
+              true, false, "",
+              tracker_onChangeMetaData,
+              metaData
+          );
+        }
+      }
+      case CMDT_OPTIONS: {
+        con_putc('[');
+        if (sMetaDataY == i && sTrackerState == TRACKER_EDIT_META_DATA
+            ) {
+          con_setAttrib(0xF4);
+        }
+        con_print(metaData->options[metaData->value]);
+        if (sMetaDataY == i && sTrackerState == TRACKER_EDIT_META_DATA
+            ) {
+          con_setAttrib(0x4F);
+        }
+        con_putc(']');
+      }
+    }
   }
   return sChip->getNumMetaData();
 }
@@ -1348,6 +1377,7 @@ void tracker_drawScreen() {
               int teX = width + 1;
               int teWidth = con_columns() - teX;
               int split = tracker_drawMetaData(width + 1, 1, teWidth) + 2;
+              con_setAttrib(0x08);
               con_hline(width + 1, con_columns() - 1, split, 0xcd);
               tracker_drawMessages(width + 1, split + 1, con_rows() - split - 3);
             } else {
@@ -2287,6 +2317,50 @@ ACTION(ACTION_SHOW_KEYS, TRACKER_EDIT_ANY) {
   con_msgf("sbShowKeys : %s", (sbShowKeys ? "true" : "false"));
 }
 
+ACTION(ACTION_MOVE_LEFT, TRACKER_EDIT_META_DATA) {
+  ChipMetaDataEntry *metaData = sChip->getMetaData(sMetaDataY);
+  switch (metaData->type) {
+    case CMDT_OPTIONS: {
+      if (metaData->value > 0) {
+        metaData->value--;
+      } else {
+        metaData->value = metaData->max;
+      }
+      sChip->setMetaData(sMetaDataY, metaData);
+    }
+  }
+}
+
+ACTION(ACTION_MOVE_RIGHT, TRACKER_EDIT_META_DATA) {
+  ChipMetaDataEntry *metaData = sChip->getMetaData(sMetaDataY);
+  switch (metaData->type) {
+    case CMDT_OPTIONS: {
+      if (metaData->value < metaData->max) {
+        metaData->value++;
+      } else {
+        metaData->value = 0;
+      }
+      sChip->setMetaData(sMetaDataY, metaData);
+    }
+  }
+}
+
+ACTION(ACTION_MOVE_UP, TRACKER_EDIT_META_DATA) {
+  if (sMetaDataY > 0) {
+    sMetaDataY--;
+  } else {
+    sMetaDataY = sChip->getNumMetaData() - 1;
+  }
+}
+
+ACTION(ACTION_MOVE_DOWN, TRACKER_EDIT_META_DATA) {
+  if (sMetaDataY < sChip->getNumMetaData() - 1) {
+    sMetaDataY++;
+  } else {
+    sMetaDataY = 0;
+  }
+}
+
 void tracker_action(Action _action, TrackerState _state) {
   HANDLE_ACTION(ACTION_MOVE_RIGHT, TRACKER_EDIT_SONG);
   HANDLE_ACTION(ACTION_MOVE_LEFT, TRACKER_EDIT_SONG);
@@ -2331,5 +2405,9 @@ void tracker_action(Action _action, TrackerState _state) {
   HANDLE_ACTION(ACTION_NEXT_TABLE_COLUMN, TRACKER_EDIT_TABLE);
   HANDLE_ACTION(ACTION_PREV_TABLE_COLUMN, TRACKER_EDIT_TABLE);
   HANDLE_ACTION(ACTION_SHOW_KEYS, TRACKER_EDIT_ANY);
+  HANDLE_ACTION(ACTION_MOVE_LEFT, TRACKER_EDIT_META_DATA);
+  HANDLE_ACTION(ACTION_MOVE_RIGHT, TRACKER_EDIT_META_DATA);
+  HANDLE_ACTION(ACTION_MOVE_UP, TRACKER_EDIT_META_DATA);
+  HANDLE_ACTION(ACTION_MOVE_DOWN, TRACKER_EDIT_META_DATA);
 } /* tracker_action */
 

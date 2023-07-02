@@ -313,26 +313,81 @@ static ChipError addTableColumn(u8 _tableKind, u8 _table) { return NO_ERR; }
 
 static ChipError deleteTableColumn(u8 _tableKind, u8 _table, u8 _atColumn) { return NO_ERR; }
 
-static u8 getNumMetaData() {
-  return 1;
-}
-
 static ChipMetaDataEntry metaData[] =
-    {{
-         .name = "Title",
-         .type = CMDT_STRING,
-         .min = 0,
-         .max =0,
-         .value = 0,
-         .csvOptions = "",
-         .stringValue = ""
-     }};
+    {
+        {
+            .name = "Ch.0 Octave",
+            .type = CMDT_OPTIONS,
+            .min = 0,
+            .max = 3,
+            .value = 1,
+            .options = {"Disabled", "Bass", "Alto", "Treble"},
+            .stringValue = {},
+            .textEdit = NULL,
+        },
+        {
+            .name = "Ch.1 Octave",
+            .type = CMDT_OPTIONS,
+            .min = 0,
+            .max = 3,
+            .value = 2,
+            .options = {"Disabled", "Bass", "Alto", "Treble"},
+            .stringValue = {},
+            .textEdit = NULL,
+        },
+        {
+            .name = "Ch.2 Octave",
+            .type = CMDT_OPTIONS,
+            .min = 0,
+            .max = 3,
+            .value = 3,
+            .options = {"Disabled", "Bass", "Alto", "Treble"},
+            .stringValue = {},
+            .textEdit = NULL,
+        },
+        {
+            .name = "Meter",
+            .type = CMDT_OPTIONS,
+            .min = 0,
+            .max = 1,
+            .value = 0,
+            .options = {"4/4", "3/4"},
+            .stringValue = {},
+            .textEdit = NULL,
+        },
+        {
+            .name = "Loop",
+            .type = CMDT_OPTIONS,
+            .min = 0,
+            .max = 1,
+            .value = 0,
+            .options = {"Stop", "Loop"},
+            .stringValue = {},
+            .textEdit = NULL,
+        },
+    };
+
+static u8 getNumMetaData() {
+  return sizeof(metaData) / sizeof(ChipMetaDataEntry);
+}
 
 static ChipMetaDataEntry *getMetaData(u8 _index) {
   return &metaData[_index];
 }
 
 static ChipError setMetaData(u8 _index, ChipMetaDataEntry *entry) {
+  switch (_index) {
+    case 0:song.ch0Octave = entry->value;
+      break;
+    case 1:song.ch1Octave = entry->value;
+      break;
+    case 2:song.ch2Octave = entry->value;
+      break;
+    case 3:song.meter = entry->value;
+      break;
+    case 4:song.loopSong = entry->value;
+      break;
+  }
   return NO_ERR;
 }
 

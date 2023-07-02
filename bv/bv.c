@@ -314,11 +314,22 @@ static ChipError addTableColumn(u8 _tableKind, u8 _table) { return NO_ERR; }
 static ChipError deleteTableColumn(u8 _tableKind, u8 _table, u8 _atColumn) { return NO_ERR; }
 
 static u8 getNumMetaData() {
-  return 0;
+  return 1;
 }
 
+static ChipMetaDataEntry metaData[] =
+    {{
+         .name = "Title",
+         .type = CMDT_STRING,
+         .min = 0,
+         .max =0,
+         .value = 0,
+         .csvOptions = "",
+         .stringValue = ""
+     }};
+
 static ChipMetaDataEntry *getMetaData(u8 _index) {
-  return NULL;
+  return &metaData[_index];
 }
 
 static ChipError setMetaData(u8 _index, ChipMetaDataEntry *entry) {
@@ -417,7 +428,7 @@ static u8 getPatternNum(u8 _songRow, u8 _channelNum) {
   return song.tracks[_channelNum][_songRow].pattern;
 }
 
-static u8 getPatternLen() {
+static u8 getPatternLen(u8 _patternNum) {
   return song.meter == SongMeter_4_4 ? 16 : 12;
 }
 
@@ -537,7 +548,7 @@ static u16 getNumInstruments() {
 }
 
 static u8 getInstrumentLen(u8 _instrument) {
-  return 34; // TODO: Implement
+  return 34;
 }
 
 static u8 getNumInstrumentParams(u8 _instrument) {
@@ -564,6 +575,7 @@ static u8 getNumInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrume
     case 1: {
       return 8;
     }
+    default:return 0;
   }
 }
 
@@ -593,7 +605,6 @@ static const char *getInstrumentLabel(u8 _instrument, u8 _instrumentRow) {
       return buf;
   }
 }
-
 
 static u8 getInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumentRow, u8 _instrumentColumn) {
   switch (_instrumentParam) {
@@ -782,6 +793,10 @@ static u8 getInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumentR
   }
 
   return 0; // TODO: Implement
+}
+
+static const char *getInstrumentHelp(u8 _instrument, u8 _instrumentParam, u8 _instrumentRow, u8 _instrumentColumn) {
+  return "Ctrl Inc Set Arp Loop Wait Vbr sYn Ring eXt (J)noff";
 }
 
 static u8 clearInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumentRow, u8 _instrumentColumn) {
@@ -1074,6 +1089,7 @@ ChipInterface chip_bv = {
     getNumInstrumentData,
     getInstrumentDataType,
     getInstrumentData,
+    getInstrumentHelp,
     getInstrumentLabel,
     clearInstrumentData,
     setInstrumentData,

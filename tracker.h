@@ -10,22 +10,22 @@
 #include "actions.h"
 
 typedef enum {
-    TEK_NONE,
-    TEK_HOME,
-    TEK_END,
-    TEK_BACKSPACE,
-    TEK_DELETE,
-    TEK_CLEAR,
-    TEK_INSERT,
-    TEK_WORD_LEFT,
-    TEK_WORD_RIGHT,
-    TEK_LEFT,
-    TEK_RIGHT,
-    TEK_SPACE,
-    TEK_ENTER,
-    TEK_ESCAPE,
-    TEK_UP,
-    TEK_DOWN
+  TEK_NONE,
+  TEK_HOME,
+  TEK_END,
+  TEK_BACKSPACE,
+  TEK_DELETE,
+  TEK_CLEAR,
+  TEK_INSERT,
+  TEK_WORD_LEFT,
+  TEK_WORD_RIGHT,
+  TEK_LEFT,
+  TEK_RIGHT,
+  TEK_SPACE,
+  TEK_ENTER,
+  TEK_ESCAPE,
+  TEK_UP,
+  TEK_DOWN
 } TrackerTextEditKey;
 
 void tracker_init();

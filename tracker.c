@@ -895,14 +895,13 @@ int tracker_drawInstrumentEditor(int _x, int _y, int _height) {
     if (instRow >= instOffset && instRow - instOffset < _height - 1) {
       con_gotoXY(_x, _y + 3 + instRow - instOffset);
       if (instRow == sInstrumentY) {
-        con_setAttrib(0x70);
+        con_setAttrib(0x4F);
       } else {
         con_setAttrib(0x08);
       }
       hit = addHit(rectRel(3), TRACKER_EDIT_ANY);
       hit->instrumentY = instRow;
       con_printf(sChip->getInstrumentLabel(sSelectedInstrument, instRow));
-      con_setAttrib(0x08);
       con_putc(':');
     }
   }
@@ -946,9 +945,9 @@ int tracker_drawInstrumentEditor(int _x, int _y, int _height) {
                 param == sInstrumentParam &&
                 sTrackerState == TRACKER_EDIT_INSTRUMENT &&
                 !sTEInstrumentName->isActive) {
-              con_setAttrib(0x170);
+              con_setAttrib(0x14F);
             } else {
-              con_setAttrib(0x70);
+              con_setAttrib(0x4F);
             }
           } else {
             con_setAttrib(0x07);
@@ -990,6 +989,14 @@ int tracker_drawInstrumentEditor(int _x, int _y, int _height) {
   if (instWidth < 16) {
     instWidth = 16;
   }
+
+  // Highlight current row
+  for (int i = 0; i < instWidth; ++i) {
+    u16 attrib = con_getAttribXY(_x + 1 + i, _y + 3 + sInstrumentY - instOffset);
+    attrib = (attrib & 0xF0F) | 0x40;
+    con_setAttribXY(_x + 1 + i, _y + 3 + sInstrumentY - instOffset, attrib);
+  }
+
   // Draw title
   if (sTrackerState == TRACKER_EDIT_INSTRUMENT) {
     con_setAttrib(0x0F);

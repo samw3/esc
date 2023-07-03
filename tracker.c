@@ -547,6 +547,7 @@ int sMetaDataY = 0;
 TrackerState sTrackerState = TRACKER_EDIT_SONG;
 bool sbEditing = false;
 bool sbShowKeys = false;
+u8 sPlonkNote = 0;
 
 void tracker_onChangeInstrumentName(TextEdit *_te, TrackerTextEditKey _exitKey) {
   sChip->setInstrumentName(sSelectedInstrument,
@@ -1420,7 +1421,14 @@ void tracker_drawScreen() {
       con_setAttribXY(i, y, 0x1f);
     }
   } else {
-    con_printXY(1, y, "JAMMING");
+    con_printXY(1, y, "JAMMING:");
+    if (sPlonkNote == 0) {
+      con_print("---");
+    } else if (sPlonkNote == 255) {
+      con_print("***");
+    } else {
+      con_printf("%s%d", sNotenames[(sPlonkNote - 1) % 12], (sPlonkNote - 1) / 12);
+    }
     for (size_t i = 0; i < w; i++) {
       con_setAttribXY(i, y, 0x70);
     }
@@ -1610,6 +1618,7 @@ bool tracker_pianoKey(int _key, bool _isRepeat) {
   }
   if (!_isRepeat) {
     sChip->plonk(note, sSelectedChannel, sSelectedInstrument);
+    sPlonkNote = note;
   }
   switch (sTrackerState) {
     case TRACKER_EDIT_SONG:
@@ -1902,7 +1911,9 @@ ACTION(ACTION_NEXT_SECTION, TRACKER_EDIT_ANY) {
 
 ACTION(ACTION_PREV_SECTION, TRACKER_EDIT_ANY) {
   switch (sTrackerState) {
-    case TRACKER_EDIT_SONG:
+    case TRACKER_EDIT_SONG:sTrackerState = TRACKER_EDIT_META_DATA;
+      break;
+    case TRACKER_EDIT_META_DATA:
       if (sChip->useTables()) {
         sTrackerState = TRACKER_EDIT_TABLE;
       } else {
@@ -2217,6 +2228,7 @@ ACTION(ACTION_NEXT_OCTAVE, TRACKER_EDIT_ANY) {
 
 ACTION(ACTION_TOGGLE_EDIT, TRACKER_EDIT_ANY) {
   sChip->silence();
+  sPlonkNote = 0;
   sbEditing = !sbEditing;
 }
 

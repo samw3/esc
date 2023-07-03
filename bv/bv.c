@@ -4,7 +4,9 @@
 #include <string.h>
 #include "../console.h"
 
-// #include "../resid/sid.h"
+#define CHIPS_IMPL
+
+#include "../chips/chips/m6581.h"
 
 typedef enum Cmd6Bit_t : unsigned {
   Cmd6Bit_Control = 0,
@@ -51,13 +53,13 @@ typedef struct InstrumentInstruction_t {
     // Inc
     struct {
       int incAmount: 5;
-      unsigned incMode: 1; // 0 = PulesWidth, 1 = Frequency
+      unsigned incMode: 1; // 0 = PulseWidth, 1 = Frequency
       Cmd6Bit cmd: 2; // Cmd6Bit_Inc
     } __attribute__((packed)) inc;
     // Set
     struct {
       unsigned setValue: 5;
-      unsigned setMode: 1; // 0 = PulesWidth, 1 = Frequency
+      unsigned setMode: 1; // 0 = PulseWidth, 1 = Frequency
       Cmd6Bit cmd: 2; // Cmd6Bit_Set
     } __attribute__((packed)) set;
     // Extra
@@ -78,7 +80,8 @@ typedef struct InstrumentInstruction_t {
     } __attribute__((packed)) wait;
     struct {
       // Vibrato
-      unsigned vibratoDepth: 3;
+      unsigned vibratoDepth: 2;
+      unsigned incMode: 1; // 0 = PulseWidth, 1 = Frequency
       Cmd3Bit cmd: 5; // Cmd3Bit_Vibrato
     } __attribute__((packed)) vibrato;
     struct {
@@ -101,6 +104,22 @@ typedef struct InstrumentInstruction_t {
       unsigned noteOffJmpPosition: 1;
       Cmd1Bit cmd: 7; // Cmd1Bit_NoteOffJmpPosition
     } __attribute__((packed)) noteOffJmpPosition;
+    struct {
+      unsigned value6: 6;
+      Cmd6Bit cmd6: 2;
+    };
+    struct {
+      unsigned value4: 4;
+      Cmd4Bit cmd4: 4;
+    };
+    struct {
+      unsigned value3: 3;
+      Cmd3Bit cmd3: 5;
+    };
+    struct {
+      unsigned value1: 1;
+      Cmd1Bit cmd1: 7;
+    };
     u8 raw;
   } __attribute__((packed));
 } __attribute__((packed)) InstrumentInstruction;
@@ -112,6 +131,12 @@ typedef struct Instrument_t {
   unsigned release: 4;
   InstrumentInstruction program[30];
 } __attribute__((packed)) Instrument;
+
+typedef union InstrumentSet_t {
+  Instrument instruments[8];
+  InstrumentInstruction instructions[256];
+  u8 raw[256];
+} __attribute__((packed)) InstrumentSet;
 
 typedef enum SongTrackSpeed_t : unsigned {
   SongTrackSpeed_Normal = 0,
@@ -195,45 +220,275 @@ typedef struct Song_t {
   } __attribute__((packed));
 } __attribute__((packed)) Song;
 
-static Song song;
-static Instrument instruments[8];
+static Song sSong;
+static InstrumentSet sInstrumentSet;
+static u8 sSidRegisters[0x20] = {0};
+
+//////////////////////////////////////////////////
+// Playroutine
+
+#define Cmd1BitMask 0xFE
+#define Cmd3BitMask 0xF8
+#define Cmd4BitMask 0xF0
+#define Cmd6BitMask 0xC0
+
+#define CmdControl 0x00 // 00000000
+#define CmdInc 0x40 // 01000000
+#define CmdSet 0x80 // 10000000
+#define CmdArpeggio 0xC0 // 11000000
+#define CmdLoop 0xD0 // 11010000
+#define CmdWait 0xE0 // 11100000
+#define CmdVibrato 0xE8 // 11101000
+#define CmdSync 0xF0 // 11110000
+#define CmdRing 0xF2 // 11110010
+#define CmdExternalVoiceFlag 0xF4 // 11110100
+#define CmdNoteOffJmpPos 0xFF // 11111111
+
+#define InstrPosMask 0x1F
+
+static const u8 freqTablePalLo[] = {
+    // Bass
+    0x17, 0x27, 0x39, 0x4b, 0x5f, 0x74, 0x8a, 0xa1, 0xba, 0xd4, 0xf0, 0x0e, 0x2d, 0x4e, 0x71, 0x96,
+    0xbe, 0xe8, 0x14, 0x43, 0x74, 0xa9, 0xe1, 0x1c, 0x5a, 0x9c, 0xe2, 0x2d, 0x7c, 0xcf, 0x28, 0x85,
+    // Alto
+    0xe8, 0x52, 0xc1, 0x37, 0xb4, 0x39, 0xc5, 0x5a, 0xf7, 0x9e, 0x4f, 0x0a, 0xd1, 0xa3, 0x82, 0x6e,
+    0x68, 0x71, 0x8a, 0xb3, 0xee, 0x3c, 0x9e, 0x15, 0xa2, 0x46, 0x04, 0xdc, 0xd0, 0xe2, 0x14, 0x67,
+    // Treble
+    0xdd, 0x79, 0x3c, 0x29, 0x44, 0x8d, 0x08, 0xb8, 0xa1, 0xc5, 0x28, 0xcd, 0xba, 0xf1, 0x78, 0x53,
+    0x87, 0x1a, 0x10, 0x71, 0x42, 0x89, 0x4f, 0x9b, 0x74, 0xe2, 0xf0, 0xa6, 0x0e, 0x33, 0x20, 0xff
+};
+static const u8 freqTablePalHi[] = {
+    // Bass
+    0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x02, 0x02, 0x02, 0x02, 0x02,
+    0x02, 0x02, 0x03, 0x03, 0x03, 0x03, 0x03, 0x04, 0x04, 0x04, 0x04, 0x05, 0x05, 0x05, 0x06, 0x06,
+    // Alto
+    0x06, 0x07, 0x07, 0x08, 0x08, 0x09, 0x09, 0x0a, 0x0a, 0x0b, 0x0c, 0x0d, 0x0d, 0x0e, 0x0f, 0x10,
+    0x11, 0x12, 0x13, 0x14, 0x15, 0x17, 0x18, 0x1a, 0x1b, 0x1d, 0x1f, 0x20, 0x22, 0x24, 0x27, 0x29,
+    // Treble
+    0x2b, 0x2e, 0x31, 0x34, 0x37, 0x3a, 0x3e, 0x41, 0x45, 0x49, 0x4e, 0x52, 0x57, 0x5c, 0x62, 0x68,
+    0x6e, 0x75, 0x7c, 0x83, 0x8b, 0x93, 0x9c, 0xa5, 0xaf, 0xb9, 0xc4, 0xd0, 0xdd, 0xea, 0xf8, 0xff
+};
+
+static bool sIsPlaying = false;
+static u8 sLineCounter[3] = {0};
+static SongLine *sLine[3] = {0};
+static u8 sInstrumentPos[3] = {0};
+static u8 sNote[3] = {0};
+static u8 songSpeeds[4];
+static bool sExternalVoiceFlag[3] = {false};
+static u8 sVibratoDepth[3] = {0};
+static bool sVibratoMode[3] = {true};
+static const u8 sWaitLookup[8] = {1, 2, 4, 8, 16, 32, 64, 128};
+static const s8 sVibratoLookup[16] = {
+    0, 12, 22, 29, 31, 29, 22, 12, 0, -12, -22, -29, -31, -29, -22, -12
+};
+static u8 sWaitCounter[3] = {0};
+static u8 sFrameCounter = 0;
+
+void playerInit() {
+  u8 songSpeed = (sSong.tempo + 3) << 2;
+  for (s8 i = 3; i >= 0; --i) songSpeeds[i] = songSpeed << sSong.tracks[i][0].speed;
+  for (s8 i = 2; i > 0; --i) {
+    sLine[i] = sSong.tracks[i];
+    sInstrumentPos[i] = 0x1F;
+    sLineCounter[i] = songSpeed << sSong.tracks[i][0].speed;
+  }
+}
+
+void playerPlayNote(u8 _channel, u8 _note, u8 _instrument) {
+  con_msgf("plonk %d %d %d", _note, _channel, _instrument);
+  sWaitCounter[_channel] = 0;
+}
+
+void playerTick() {
+  if (sIsPlaying) {
+    // Trigger intruments from song lines
+  }
+  // Tick instruments
+  for (u8 ch = 0; ch < 3; ++ch) {
+    // Wait if necessary
+    if (sWaitCounter[ch] != 0) {
+      sWaitCounter[ch]--;
+      continue;
+    }
+    // Set base frequency
+
+    // Process instrument instructions
+    switch (sInstrumentPos[ch] & InstrPosMask) {
+      case 0: {
+        // Set Attack + Decay
+        sSidRegisters[0x05 + ch * 7] = sInstrumentSet.raw[sInstrumentPos[ch]];
+        sInstrumentPos[ch]++;
+        break;
+      }
+      case 1: {
+        // Set Sustain + Release
+        sSidRegisters[0x06 + ch * 7] = sInstrumentSet.raw[sInstrumentPos[ch]];
+        sInstrumentPos[ch]++;
+        break;
+      }
+      default: {
+        u8 cmd = sInstrumentSet.raw[sInstrumentPos[ch]];
+        u8 value = cmd;
+        if (cmd == CmdNoteOffJmpPos) {
+
+        } else {
+          cmd &= Cmd1BitMask;
+          if (cmd == CmdSync) {
+            // Sync
+            if (value & 1) {
+              sSidRegisters[0x04 + ch * 7] |= 0x02;
+            } else {
+              sSidRegisters[0x04 + ch * 7] &= 0xFD;
+            }
+          } else if (cmd == CmdRing) {
+            // Ring
+            if (value & 1) {
+              sSidRegisters[0x04 + ch * 7] |= 0x04;
+            } else {
+              sSidRegisters[0x04 + ch * 7] &= 0xFB;
+            }
+          } else if (cmd == CmdExternalVoiceFlag) {
+            // External voice flag
+            sExternalVoiceFlag[ch] = value & 1;
+          } else {
+            cmd &= Cmd3BitMask;
+            if (cmd == CmdWait) {
+              // Wait
+              sWaitCounter[ch] = sWaitLookup[value & 0x07];
+            } else if (cmd == CmdVibrato) {
+              // Vibrato
+              sVibratoDepth[ch] = value & 0x03;
+              sVibratoMode[ch] = value & 0x04;
+            } else {
+              cmd &= Cmd4BitMask;
+              if (cmd == CmdArpeggio) {
+                // Arpeggio
+                // TODO: Implement
+              } else if (cmd == CmdLoop) {
+                // Loop
+                sInstrumentPos[ch] -= ((value & 0x0F) + 1);
+              } else {
+                cmd &= Cmd6BitMask;
+                if (cmd == CmdControl) {
+                  // Control
+                  value &= 0x3F;
+                  value = (value << 3) | (value >> 5); // ROL*3
+                  sSidRegisters[0x04 + ch * 7] &= 0x06;
+                  sSidRegisters[0x04 + ch * 7] |= value;
+
+                } else if (cmd == CmdInc) {
+                  // Inc
+                } else if (cmd == CmdSet) {
+                  // Set
+                }
+              }
+            }
+          }
+        }
+        // Apply Vibrato
+        if (sVibratoDepth[ch] != 0) {
+          s16 vibrato = sVibratoLookup[sFrameCounter & 0x0F];
+          sSidRegisters[ch * 7] += vibrato << sVibratoDepth[ch];
+        }
+        sInstrumentPos[ch]++;
+        break;
+      } // end default
+    } // end switch
+  } // end for
+  sFrameCounter++;
+}
+
+
+//////////////////////////////////////////////////
+
+#define C64_FREQUENCY (985248) // clock frequency in Hz
+#define C64_VBLANK (C64_FREQUENCY / 50) // 50 Hz
+m6581_t sid;
+uint64_t pins = 0;
+u32 clocks = 0;
+
+void sidInit() {
+  m6581_init(&sid, &(m6581_desc_t) {
+      .tick_hz = C64_FREQUENCY,
+      .sound_hz = 44100,
+      .magnitude = 1.0f,
+  });
+  m6581_reset(&sid);
+  pins = 0;
+}
+
+void sidReset() {
+  m6581_reset(&sid);
+  pins = 0;
+}
+
+void sidTick(ChipSample *_buf, int _len) {
+  int pos = 0;
+  while (pos < _len) {
+    if (clocks == 0) {
+      // Call playroutine
+      playerTick();
+    }
+    if (clocks < 0x20) {
+      // Copy shadow registers to SID
+      pins |= M6581_CS;
+      pins &= ~M6581_RW;
+      pins |= (clocks & 0x1f);
+      M6581_SET_DATA(pins, sSidRegisters[clocks]);
+      pins = m6581_tick(&sid, pins);
+    } else {
+      // Do nothing to SID
+      pins &= ~M6581_CS;
+      pins |= M6581_RW;
+      M6581_SET_DATA(pins, 0);
+      pins = m6581_tick(&sid, pins);
+    }
+    if (pins & M6581_SAMPLE) {
+      _buf[pos].left = (s16) (sid.sample * INT16_MAX);
+      _buf[pos].right = (s16) (sid.sample * INT16_MAX);
+      pos++;
+    }
+    clocks = (clocks + 1) % C64_VBLANK;
+  }
+}
 
 static const char *getChipId() {
   return "BV";
 }
 
 static ChipError newSong() {
-  memset(&song, 0, sizeof(Song));
+  memset(&sSong, 0, sizeof(Song));
 
-  song.instrumentSet = 0;
-  song.ch0Octave = SongOctave_Bass;
-  song.ch1Octave = SongOctave_Alto;
-  song.ch2Octave = SongOctave_Treble;
-  song.meter = SongMeter_4_4;
-  song.loopSong = SongLoop_Stop;
-  song.tempo = 2;
+  sSong.instrumentSet = 0;
+  sSong.ch0Octave = SongOctave_Bass;
+  sSong.ch1Octave = SongOctave_Alto;
+  sSong.ch2Octave = SongOctave_Treble;
+  sSong.meter = SongMeter_4_4;
+  sSong.loopSong = SongLoop_Stop;
+  sSong.tempo = 2;
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 20; j++) {
-      song.tracks[i][j].pattern = 0;
-      song.tracks[i][j].speed = SongTrackSpeed_Normal;
-      song.tracks[i][j].options = SongTrackOptions_PlayOnce;
+      sSong.tracks[i][j].pattern = 0;
+      sSong.tracks[i][j].speed = SongTrackSpeed_Normal;
+      sSong.tracks[i][j].options = SongTrackOptions_PlayOnce;
     }
   }
-  memset(&song.pattern44, 0, sizeof(song.pattern44));
+  memset(&sSong.pattern44, 0, sizeof(sSong.pattern44));
 
   // Init intstruments
   for (int i = 0; i < 8; i++) {
-    instruments[i].attack = 0;
-    instruments[i].decay = 0;
-    instruments[i].sustain = 0;
-    instruments[i].release = 0;
-    instruments[i].program[0].raw = 0;
-    instruments[i].program[0].control.cmd = Cmd6Bit_Control;
-    instruments[i].program[0].control.controlPulse = 1;
-    instruments[i].program[0].control.controlGate = 1;
+    sInstrumentSet.instruments[i].attack = 0;
+    sInstrumentSet.instruments[i].decay = 0;
+    sInstrumentSet.instruments[i].sustain = 0;
+    sInstrumentSet.instruments[i].release = 0;
+    sInstrumentSet.instruments[i].program[0].raw = 0;
+    sInstrumentSet.instruments[i].program[0].control.cmd = Cmd6Bit_Control;
+    sInstrumentSet.instruments[i].program[0].control.controlPulse = 1;
+    sInstrumentSet.instruments[i].program[0].control.controlGate = 1;
     for (int j = 1; j < 30; j++) {
-      instruments[i].program[j].loop.cmd = Cmd4Bit_Loop;
-      instruments[i].program[j].loop.loopPosition = 0;
+      sInstrumentSet.instruments[i].program[j].loop.cmd = Cmd4Bit_Loop;
+      sInstrumentSet.instruments[i].program[j].loop.loopPosition = 0;
     }
   }
 
@@ -249,12 +504,14 @@ static u8 labelString(const char *label, u8 col) {
 }
 
 static ChipError init() {
+  sidInit();
   newSong();
 
-  con_msgf("Size of song: %d", sizeof(song));
-  con_msgf("Size of instruments: %d", sizeof(instruments));
+  con_msgf("Size of song: %d", sizeof(sSong));
+  con_msgf("Size of instruments: %d", sizeof(sInstrumentSet));
   con_msgf("Size of SongTrack: %d", sizeof(SongTrack));
   con_msgf("Size of Instrument: %d", sizeof(Instrument));
+
 
   return NO_ERR;
 }
@@ -377,15 +634,15 @@ static ChipMetaDataEntry *getMetaData(u8 _index) {
 
 static ChipError setMetaData(u8 _index, ChipMetaDataEntry *entry) {
   switch (_index) {
-    case 0:song.ch0Octave = entry->value;
+    case 0:sSong.ch0Octave = entry->value;
       break;
-    case 1:song.ch1Octave = entry->value;
+    case 1:sSong.ch1Octave = entry->value;
       break;
-    case 2:song.ch2Octave = entry->value;
+    case 2:sSong.ch2Octave = entry->value;
       break;
-    case 3:song.meter = entry->value;
+    case 3:sSong.meter = entry->value;
       break;
-    case 4:song.loopSong = entry->value;
+    case 4:sSong.loopSong = entry->value;
       break;
   }
   return NO_ERR;
@@ -431,9 +688,9 @@ static const char *getSongHelp(u8 _songRow, u8 _channelNum, u8 _songDataColumn) 
 
 static u8 getSongData(u8 _songRow, u8 _channelNum, u8 _songDataColumn) {
   switch (_songDataColumn) {
-    case 0:return GETLO(song.tracks[_channelNum][_songRow].pattern);
-    case 2:return GETLO(song.tracks[_channelNum][_songRow].speed);
-    case 4:return GETLO(song.tracks[_channelNum][_songRow].options);
+    case 0:return GETLO(sSong.tracks[_channelNum][_songRow].pattern);
+    case 2:return GETLO(sSong.tracks[_channelNum][_songRow].speed);
+    case 4:return GETLO(sSong.tracks[_channelNum][_songRow].options);
     default:return ':';
   }
   return 0;
@@ -441,24 +698,24 @@ static u8 getSongData(u8 _songRow, u8 _channelNum, u8 _songDataColumn) {
 
 static u8 clearSongData(u8 _songRow, u8 _channelNum, u8 _songDataColumn) {
   switch (_songDataColumn) {
-    case 0:return SETLO(song.tracks[_channelNum][_songRow].pattern, 0);
-    case 2:return SETLO(song.tracks[_channelNum][_songRow].speed, 0);
-    case 4:return SETLO(song.tracks[_channelNum][_songRow].options, 0);
+    case 0:return SETLO(sSong.tracks[_channelNum][_songRow].pattern, 0);
+    case 2:return SETLO(sSong.tracks[_channelNum][_songRow].speed, 0);
+    case 4:return SETLO(sSong.tracks[_channelNum][_songRow].options, 0);
   }
   return 0;
 }
 
 static u8 setSongData(u8 _songRow, u8 _channelNum, u8 _songDataColumn, u8 _data) {
   switch (_songDataColumn) {
-    case 0:return SETLO(song.tracks[_channelNum][_songRow].pattern, _data);
-    case 2:return SETLO(song.tracks[_channelNum][_songRow].speed, _data);
-    case 4:return SETLO(song.tracks[_channelNum][_songRow].options, _data);
+    case 0:return SETLO(sSong.tracks[_channelNum][_songRow].pattern, _data);
+    case 2:return SETLO(sSong.tracks[_channelNum][_songRow].speed, _data);
+    case 4:return SETLO(sSong.tracks[_channelNum][_songRow].options, _data);
   }
   return _data;
 }
 
 static void setSongPattern(u8 _songRow, u8 _channelNum, u8 _pattern) {
-  SETLO(song.tracks[_channelNum][_songRow].pattern, _pattern);
+  SETLO(sSong.tracks[_channelNum][_songRow].pattern, _pattern);
 }
 
 static u8 getNumChannels() {
@@ -476,15 +733,15 @@ static const char *getChannelName(u8 _patternNum, u8 _width) {
 }
 
 static u16 getNumPatterns() {
-  return song.meter == SongMeter_4_4 ? 12 : 16;
+  return sSong.meter == SongMeter_4_4 ? 12 : 16;
 }
 
 static u8 getPatternNum(u8 _songRow, u8 _channelNum) {
-  return song.tracks[_channelNum][_songRow].pattern;
+  return sSong.tracks[_channelNum][_songRow].pattern;
 }
 
 static u8 getPatternLen(u8 _patternNum) {
-  return song.meter == SongMeter_4_4 ? 16 : 12;
+  return sSong.meter == SongMeter_4_4 ? 16 : 12;
 }
 
 static u8 getNumPatternDataColumns(u8 _channelNum, u8 _patternNum, u8 _patternRow) {
@@ -505,10 +762,10 @@ static ChipDataType getPatternDataType(u8 _channelNum, u8 _patternNum, u8 _patte
 
 static u8 getPatternData(u8 _channelNum, u8 _patternNum, u8 _patternRow, u8 _patternColumn) {
   SongLine *line;
-  if (song.meter == SongMeter_4_4) {
-    line = &song.pattern44[_patternNum][_patternRow];
+  if (sSong.meter == SongMeter_4_4) {
+    line = &sSong.pattern44[_patternNum][_patternRow];
   } else {
-    line = &song.pattern34[_patternNum][_patternRow];
+    line = &sSong.pattern34[_patternNum][_patternRow];
   }
   switch (_patternColumn) {
     case 0: return line->note;
@@ -527,10 +784,10 @@ static const char *getPatternHelp(u8 _channelNum, u8 _patternNum, u8 _patternRow
 
 static u8 clearPatternData(u8 _channelNum, u8 _patternNum, u8 _patternRow, u8 _patternColumn) {
   SongLine *line;
-  if (song.meter == SongMeter_4_4) {
-    line = &song.pattern44[_patternNum][_patternRow];
+  if (sSong.meter == SongMeter_4_4) {
+    line = &sSong.pattern44[_patternNum][_patternRow];
   } else {
-    line = &song.pattern34[_patternNum][_patternRow];
+    line = &sSong.pattern34[_patternNum][_patternRow];
   }
   switch (_patternColumn) {
     case 0: {
@@ -552,10 +809,10 @@ static u8 clearPatternData(u8 _channelNum, u8 _patternNum, u8 _patternRow, u8 _p
 static u8 setPatternData(u8 _channelNum, u8 _patternNum, u8 _patternRow, u8 _patternColumn, u8 _instrument,
                          u8 _data) {
   SongLine *line;
-  if (song.meter == SongMeter_4_4) {
-    line = &song.pattern44[_patternNum][_patternRow];
+  if (sSong.meter == SongMeter_4_4) {
+    line = &sSong.pattern44[_patternNum][_patternRow];
   } else {
-    line = &song.pattern34[_patternNum][_patternRow];
+    line = &sSong.pattern34[_patternNum][_patternRow];
   }
   switch (_patternColumn) {
     case 0: {
@@ -665,13 +922,13 @@ static u8 getInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumentR
   switch (_instrumentParam) {
     case 0:
       switch (_instrumentRow) {
-        case 0: return instruments[_instrument].attack;
-        case 1: return instruments[_instrument].decay;
-        case 2: return instruments[_instrument].sustain;
-        case 3: return instruments[_instrument].release;
+        case 0: return sInstrumentSet.instruments[_instrument].attack;
+        case 1: return sInstrumentSet.instruments[_instrument].decay;
+        case 2: return sInstrumentSet.instruments[_instrument].sustain;
+        case 3: return sInstrumentSet.instruments[_instrument].release;
         default: {
           if (_instrumentRow > 33) return ' ';
-          InstrumentInstruction *instr = &instruments[_instrument].program[_instrumentRow - 4];
+          InstrumentInstruction *instr = &sInstrumentSet.instruments[_instrument].program[_instrumentRow - 4];
           Cmd6Bit cmd6Bit = (instr->raw >> 6) & 0x3;
           switch (cmd6Bit) {
             case Cmd6Bit_Control: {
@@ -755,19 +1012,19 @@ static u8 getInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumentR
         case 3:return labelString("Release", _instrumentColumn);
         default: {
           if (_instrumentRow > 33) return ' ';
-          InstrumentInstruction *instr = &instruments[_instrument].program[_instrumentRow - 4];
+          InstrumentInstruction *instr = &sInstrumentSet.instruments[_instrument].program[_instrumentRow - 4];
           Cmd6Bit cmd6Bit = (instr->raw >> 6) & 0x3;
           switch (cmd6Bit) {
             case Cmd6Bit_Control: {
               switch (_instrumentColumn) {
                 case 0: return 'C';
                 case 1: return ':';
-                case 2: return instr->control.controlReset ? 'R' : '.';
-                case 3: return instr->control.controlGate ? 'G' : '.';
-                case 4: return instr->control.controlNoise ? 'N' : '.';
-                case 5: return instr->control.controlPulse ? 'P' : '.';
-                case 6: return instr->control.controlSawtooth ? 'S' : '.';
-                case 7: return instr->control.controlTriangle ? 'T' : '.';
+                case 2: return instr->control.controlGate ? 'G' : '.';
+                case 3: return instr->control.controlNoise ? 'N' : '.';
+                case 4: return instr->control.controlPulse ? 'P' : '.';
+                case 5: return instr->control.controlSawtooth ? 'S' : '.';
+                case 6: return instr->control.controlTriangle ? 'T' : '.';
+                case 7: return instr->control.controlReset ? 'R' : '.';
                 default: return ' ';
               }
               return labelString("Control", _instrumentColumn);
@@ -861,18 +1118,18 @@ static u8 clearInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumen
 static bool setInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumentRow, u8 _instrumentColumn,
                               u8 _data) {
   switch (_instrumentRow) {
-    case 0:instruments[_instrument].attack = _data;
+    case 0:sInstrumentSet.instruments[_instrument].attack = _data;
       break;
-    case 1:instruments[_instrument].decay = _data;
+    case 1:sInstrumentSet.instruments[_instrument].decay = _data;
       break;
-    case 2:instruments[_instrument].sustain = _data;
+    case 2:sInstrumentSet.instruments[_instrument].sustain = _data;
       break;
-    case 3:instruments[_instrument].release = _data;
+    case 3:sInstrumentSet.instruments[_instrument].release = _data;
       break;
     default: {
       if (_instrumentRow > 33) return false;
       if (_instrumentParam == 0) {
-        InstrumentInstruction *instr = &instruments[_instrument].program[_instrumentRow - 4];
+        InstrumentInstruction *instr = &sInstrumentSet.instruments[_instrument].program[_instrumentRow - 4];
         if (_instrumentColumn == 0) {
           switch (_data) {
             case 'c': {
@@ -1048,6 +1305,7 @@ static u8 getPlayerPatternRow() {
 }
 
 static void plonk(u8 _note, u8 _channelNum, u8 _instrument) {
+  playerPlayNote(_channelNum, _note, _instrument);
 }
 
 static void playSongFrom(u8 _songRow, u8 _songColumn, u8 _patternRow, u8 _patternColumn) {

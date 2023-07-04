@@ -409,15 +409,16 @@ void playerTick() {
         }
       }
     }
-    // Apply Vibrato
-    if (sVibratoDepth[ch] != 0) {
-      s16 vibrato = sVibratoLookup[sFrameCounter & 0x0F];
-      sSidRegisters[ch * 7] += vibrato << sVibratoDepth[ch];
-    }
-    sInstrumentPos[ch] = (sInstrumentPos[ch] + 1) & 0x1F;
 
     // Set frequency
     u8 note = sNote[ch] + sArpNote[ch];
+    if (ch == 0) {
+      note += ((sSong.ch0Octave - 1) << 5);
+    } else if (ch == 1) {
+      note += ((sSong.ch1Octave - 1) << 5);
+    } else {
+      note += ((sSong.ch2Octave - 1) << 5);
+    }
     u16 *freq = (u16 *) &sSidRegisters[0x00 + ch * 7];
     *freq = (sFreqTablePalLo[note] | sFreqTablePalHi[note] << 8) + sFreqDelta[ch];
 
@@ -434,7 +435,9 @@ void playerTick() {
         *pw += vibrato;
       }
     }
-    
+
+    // Increment instrument position
+    sInstrumentPos[ch] = (sInstrumentPos[ch] + 1) & 0x1F;
   } // end for
   sFrameCounter++;
 }
@@ -478,7 +481,8 @@ void sidTick(ChipSample *_buf, int _len) {
       // Copy shadow registers to SID
       pins |= M6581_CS;
       pins &= ~M6581_RW;
-      pins |= (clocks & 0x1f);
+      pins &= ~M6581_ADDR_MASK;
+      pins |= clocks;
       M6581_SET_DATA(pins, sSidRegisters[clocks]);
       pins = m6581_tick(&sid, pins);
     } else {
@@ -1349,8 +1353,8 @@ static u8 getPlayerPatternRow() {
   return 0; // TODO: Implement
 }
 
-static void plonk(u8 _note, u8 _channelNum, u8 _instrument) {
-  playerPlayNote(_channelNum, _note, _instrument);
+static void plonk(u8 _note, u8 _channelNum, u8 _instrument, bool _isDown) {
+  playerPlayNote(_channelNum, _note, _instrument, _isDown);
 }
 
 static void playSongFrom(u8 _songRow, u8 _songColumn, u8 _patternRow, u8 _patternColumn) {
@@ -1370,7 +1374,8 @@ static void stop() {
 }
 
 static void getSamples(ChipSample *_buf, int _len) {
-  memset(_buf, 0, _len * sizeof(ChipSample));
+  sidTick(_buf, _len);
+  //memset(_buf, 0, _len * sizeof(ChipSample));
 }
 
 static void preferredWindowSize(u32 *_width, u32 *_height) {

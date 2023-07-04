@@ -384,7 +384,7 @@ void playerTick() {
               // Control
               value &= 0x3F;
               value = (value << 3) | (value >> 5); // ROL*3
-              sSidRegisters[0x04 + ch * 7] &= 0x06;
+              sSidRegisters[0x04 + ch * 7] &= ~0xF9;
               sSidRegisters[0x04 + ch * 7] |= value;
             } else if (cmd == CmdInc) {
               // Inc
@@ -423,7 +423,7 @@ void playerTick() {
     *freq = (sFreqTablePalLo[note] | sFreqTablePalHi[note] << 8) + sFreqDelta[ch];
 
     // Set pulse width
-    u8 *pw = &sSidRegisters[0x02 + ch * 7];
+    u16 *pw = (u16 *) &sSidRegisters[0x02 + ch * 7];
     *pw = sPwDelta[ch];
 
     // Apply Vibrato
@@ -437,7 +437,7 @@ void playerTick() {
     }
 
     // Increment instrument position
-    sInstrumentPos[ch] = (sInstrumentPos[ch] + 1) & 0x1F;
+    sInstrumentPos[ch] = ((sInstrumentPos[ch] + 1) & 0x1F) | (sInstrumentPos[ch] & 0xE0);
   } // end for
   sFrameCounter++;
 }
@@ -459,6 +459,14 @@ void sidReset() {
   }
   // Set volume
   sSidRegisters[0x18] = 0x0F;
+/*
+  // Test tone
+  sSidRegisters[0x00] = 0x68;
+  sSidRegisters[0x01] = 0x11;
+  sSidRegisters[0x04] = 0x11;
+  sSidRegisters[0x05] = 0x00;
+  sSidRegisters[0x06] = 0xF0;
+*/
 }
 
 void sidInit() {
@@ -485,6 +493,7 @@ void sidTick(ChipSample *_buf, int _len) {
       pins |= clocks;
       M6581_SET_DATA(pins, sSidRegisters[clocks]);
       pins = m6581_tick(&sid, pins);
+      // con_msgf("%02X > %02X", clocks, sSidRegisters[clocks]);
     } else {
       // Do nothing to SID
       pins &= ~M6581_CS;
@@ -570,10 +579,38 @@ static ChipError shutdown() {
 }
 
 static ChipError loadSong(const char *_filename) {
+  FILE *file = fopen(_filename, "rb");
+  if (file == NULL) {
+    return ERR_FILE_NOT_FOUND;
+  }
+  size_t res;
+  res = fread(&sSong, sizeof(Song), 1, file);
+  if (res != 1) {
+    return ERR_FILE_READ;
+  }
+  res = fread(&sInstruments, sizeof(sInstruments), 1, file);
+  if (res != 1) {
+    return ERR_FILE_READ;
+  }
+  fclose(file);
   return NO_ERR;
 }
 
 static ChipError saveSong(const char *filename) {
+  FILE *file = fopen(filename, "wb");
+  if (file == NULL) {
+    return ERR_FILE_NOT_FOUND;
+  }
+  size_t res;
+  res = fwrite(&sSong, sizeof(Song), 1, file);
+  if (res != 1) {
+    return ERR_FILE_WRITE;
+  }
+  res = fwrite(&sInstruments, sizeof(sInstruments), 1, file);
+  if (res != 1) {
+    return ERR_FILE_WRITE;
+  }
+  fclose(file);
   return NO_ERR;
 }
 

@@ -538,7 +538,7 @@ int sSelectedChannel = 0;
 int sPatternX = 0, sPatternY = 0;
 int sSelectedPattern = 0;
 int sInstrumentX = 0, sInstrumentY = 0, sInstrumentParam = 0;
-int sSelectedInstrument = 1;
+int sSelectedInstrument = 0;
 int sSelectedTableKind = 0;
 u16 *sSelectedTable = NULL;
 int sTableX = 0;
@@ -1619,6 +1619,9 @@ bool tracker_pianoKey(int _key, bool _isRepeat, bool _isDown) {
   if (!_isRepeat) {
     sChip->plonk(note, sSelectedChannel, sSelectedInstrument, _isDown);
     sPlonkNote = note;
+    if (!_isDown) {
+      return true;
+    }
   }
   switch (sTrackerState) {
     case TRACKER_EDIT_SONG:
@@ -2093,7 +2096,7 @@ ACTION(ACTION_SAVE, TRACKER_EDIT_ANY) {
 
 ACTION(ACTION_PREV_INSTRUMENT, TRACKER_EDIT_ANY) {
   sSelectedInstrument--;
-  if (sSelectedInstrument == 0) {
+  if (sSelectedInstrument < 0) {
     sSelectedInstrument = sChip->getNumInstruments() - 1;
   }
   sInstrumentY = 0;
@@ -2102,7 +2105,7 @@ ACTION(ACTION_PREV_INSTRUMENT, TRACKER_EDIT_ANY) {
 ACTION(ACTION_NEXT_INSTRUMENT, TRACKER_EDIT_ANY) {
   sSelectedInstrument++;
   if (sSelectedInstrument == sChip->getNumInstruments()) {
-    sSelectedInstrument = 1;
+    sSelectedInstrument = 0;
   }
   sInstrumentY = 0;
 }

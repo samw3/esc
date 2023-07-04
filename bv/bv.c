@@ -504,6 +504,7 @@ void sidTick(ChipSample *_buf, int _len) {
     if (pins & M6581_SAMPLE) {
       _buf[pos].left = (s16) (sid.sample * INT16_MAX);
       _buf[pos].right = (s16) (sid.sample * INT16_MAX);
+      _buf[pos] = chip_expandSample(_buf[pos]);
       pos++;
     }
     clocks = (clocks + 1) % C64_VBLANK;

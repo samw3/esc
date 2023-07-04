@@ -246,7 +246,7 @@ static u8 sSidRegisters[0x20] = {0};
 
 #define InstrPosMask 0x1F
 
-static const u8 freqTablePalLo[] = {
+static const u8 sFreqTablePalLo[96] = {
     // Bass
     0x17, 0x27, 0x39, 0x4b, 0x5f, 0x74, 0x8a, 0xa1, 0xba, 0xd4, 0xf0, 0x0e, 0x2d, 0x4e, 0x71, 0x96,
     0xbe, 0xe8, 0x14, 0x43, 0x74, 0xa9, 0xe1, 0x1c, 0x5a, 0x9c, 0xe2, 0x2d, 0x7c, 0xcf, 0x28, 0x85,
@@ -257,7 +257,7 @@ static const u8 freqTablePalLo[] = {
     0xdd, 0x79, 0x3c, 0x29, 0x44, 0x8d, 0x08, 0xb8, 0xa1, 0xc5, 0x28, 0xcd, 0xba, 0xf1, 0x78, 0x53,
     0x87, 0x1a, 0x10, 0x71, 0x42, 0x89, 0x4f, 0x9b, 0x74, 0xe2, 0xf0, 0xa6, 0x0e, 0x33, 0x20, 0xff
 };
-static const u8 freqTablePalHi[] = {
+static const u8 sFreqTablePalHi[96] = {
     // Bass
     0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x02, 0x02, 0x02, 0x02, 0x02,
     0x02, 0x02, 0x03, 0x03, 0x03, 0x03, 0x03, 0x04, 0x04, 0x04, 0x04, 0x05, 0x05, 0x05, 0x06, 0x06,
@@ -268,36 +268,52 @@ static const u8 freqTablePalHi[] = {
     0x2b, 0x2e, 0x31, 0x34, 0x37, 0x3a, 0x3e, 0x41, 0x45, 0x49, 0x4e, 0x52, 0x57, 0x5c, 0x62, 0x68,
     0x6e, 0x75, 0x7c, 0x83, 0x8b, 0x93, 0x9c, 0xa5, 0xaf, 0xb9, 0xc4, 0xd0, 0xdd, 0xea, 0xf8, 0xff
 };
-
-static bool sIsPlaying = false;
-static u8 sLineCounter[3] = {0};
-static SongLine *sLine[3] = {0};
-static u8 sInstrumentPos[3] = {0};
-static u8 sNote[3] = {0};
-static u8 songSpeeds[4];
-static bool sExternalVoiceFlag[3] = {false};
-static u8 sVibratoDepth[3] = {0};
-static bool sVibratoMode[3] = {true};
 static const u8 sWaitLookup[8] = {1, 2, 4, 8, 16, 32, 64, 128};
 static const s8 sVibratoLookup[16] = {
     0, 12, 22, 29, 31, 29, 22, 12, 0, -12, -22, -29, -31, -29, -22, -12
 };
+
+static bool sIsPlaying = false;
+static u8 sLineCounter[3] = {0};
+static SongTrack *sTrack[3] = {0};
+static SongLine *sLine[3] = {0};
+static u8 sInstrumentPos[3] = {0};
+static u8 sNote[3] = {0};
+static u8 sArpNote[3] = {0};
+static u16 sFreqDelta[3] = {0};
+static u16 sPwDelta[3] = {0};
+static u8 sVibratoDepth[3] = {0};
+static bool sVibratoMode[3] = {true};
+static bool sExternalVoiceFlag[3] = {false};
+
+static u8 sSongSpeeds[4];
 static u8 sWaitCounter[3] = {0};
 static u8 sFrameCounter = 0;
 
 void playerInit() {
   u8 songSpeed = (sSong.tempo + 3) << 2;
-  for (s8 i = 3; i >= 0; --i) songSpeeds[i] = songSpeed << sSong.tracks[i][0].speed;
-  for (s8 i = 2; i > 0; --i) {
-    sLine[i] = sSong.tracks[i];
-    sInstrumentPos[i] = 0x1F;
-    sLineCounter[i] = songSpeed << sSong.tracks[i][0].speed;
+  for (s8 i = 3; i >= 0; --i) sSongSpeeds[i] = songSpeed << sSong.tracks[i][0].speed;
+  for (s8 ch = 2; ch >= 0; --ch) {
+    if (sSong.meter == SongMeter_4_4) {
+      sTrack[ch] = &sSong.tracks[ch][0];
+      sLine[ch] = sSong.pattern44[sTrack[ch]->pattern];
+    } else {
+      sTrack[ch] = &sSong.tracks[ch][0];
+      sLine[ch] = sSong.pattern34[sTrack[ch]->pattern];
+    }
+    sInstrumentPos[ch] = 0;
+    sLineCounter[ch] = songSpeed << sSong.tracks[ch][0].speed;
   }
 }
 
 void playerPlayNote(u8 _channel, u8 _note, u8 _instrument) {
   con_msgf("plonk %d %d %d", _note, _channel, _instrument);
+  sInstrumentPos[_channel] = (_instrument << 5) + 2;
   sWaitCounter[_channel] = 0;
+  sArpNote[_channel] = 0;
+  sVibratoDepth[_channel] = 0;
+  sSidRegisters[0x05 + _channel * 7] = sInstrumentSet.raw[sInstrumentPos[_channel] - 2];
+  sSidRegisters[0x06 + _channel * 7] = sInstrumentSet.raw[sInstrumentPos[_channel] - 1];
 }
 
 void playerTick() {
@@ -306,95 +322,113 @@ void playerTick() {
   }
   // Tick instruments
   for (u8 ch = 0; ch < 3; ++ch) {
+    // Check end of instrument
+    if (sInstrumentPos[ch] == 0) continue;
+
     // Wait if necessary
     if (sWaitCounter[ch] != 0) {
       sWaitCounter[ch]--;
       continue;
     }
-    // Set base frequency
 
     // Process instrument instructions
-    switch (sInstrumentPos[ch] & InstrPosMask) {
-      case 0: {
-        // Set Attack + Decay
-        sSidRegisters[0x05 + ch * 7] = sInstrumentSet.raw[sInstrumentPos[ch]];
-        sInstrumentPos[ch]++;
-        break;
-      }
-      case 1: {
-        // Set Sustain + Release
-        sSidRegisters[0x06 + ch * 7] = sInstrumentSet.raw[sInstrumentPos[ch]];
-        sInstrumentPos[ch]++;
-        break;
-      }
-      default: {
-        u8 cmd = sInstrumentSet.raw[sInstrumentPos[ch]];
-        u8 value = cmd;
-        if (cmd == CmdNoteOffJmpPos) {
+    u8 cmd = sInstrumentSet.raw[sInstrumentPos[ch]];
+    u8 value = cmd;
+    if (cmd == CmdNoteOffJmpPos) {
 
+    } else {
+      cmd &= Cmd1BitMask;
+      if (cmd == CmdSync) {
+        // Sync
+        if (value & 1) {
+          sSidRegisters[0x04 + ch * 7] |= 0x02;
         } else {
-          cmd &= Cmd1BitMask;
-          if (cmd == CmdSync) {
-            // Sync
-            if (value & 1) {
-              sSidRegisters[0x04 + ch * 7] |= 0x02;
-            } else {
-              sSidRegisters[0x04 + ch * 7] &= 0xFD;
-            }
-          } else if (cmd == CmdRing) {
-            // Ring
-            if (value & 1) {
-              sSidRegisters[0x04 + ch * 7] |= 0x04;
-            } else {
-              sSidRegisters[0x04 + ch * 7] &= 0xFB;
-            }
-          } else if (cmd == CmdExternalVoiceFlag) {
-            // External voice flag
-            sExternalVoiceFlag[ch] = value & 1;
+          sSidRegisters[0x04 + ch * 7] &= 0xFD;
+        }
+      } else if (cmd == CmdRing) {
+        // Ring
+        if (value & 1) {
+          sSidRegisters[0x04 + ch * 7] |= 0x04;
+        } else {
+          sSidRegisters[0x04 + ch * 7] &= 0xFB;
+        }
+      } else if (cmd == CmdExternalVoiceFlag) {
+        // External voice flag
+        sExternalVoiceFlag[ch] = value & 1;
+      } else {
+        cmd &= Cmd3BitMask;
+        if (cmd == CmdWait) {
+          // Wait
+          sWaitCounter[ch] = sWaitLookup[value & 0x07];
+        } else if (cmd == CmdVibrato) {
+          // Vibrato
+          sVibratoDepth[ch] = value & 0x03;
+          sVibratoMode[ch] = value & 0x04;
+        } else {
+          cmd &= Cmd4BitMask;
+          if (cmd == CmdArpeggio) {
+            // Arpeggio
+            sArpNote[ch] = value & 0x0F;
+          } else if (cmd == CmdLoop) {
+            // Loop
+            sInstrumentPos[ch] -= ((value & 0x0F) + 1);
           } else {
-            cmd &= Cmd3BitMask;
-            if (cmd == CmdWait) {
-              // Wait
-              sWaitCounter[ch] = sWaitLookup[value & 0x07];
-            } else if (cmd == CmdVibrato) {
-              // Vibrato
-              sVibratoDepth[ch] = value & 0x03;
-              sVibratoMode[ch] = value & 0x04;
-            } else {
-              cmd &= Cmd4BitMask;
-              if (cmd == CmdArpeggio) {
-                // Arpeggio
-                // TODO: Implement
-              } else if (cmd == CmdLoop) {
-                // Loop
-                sInstrumentPos[ch] -= ((value & 0x0F) + 1);
+            cmd &= Cmd6BitMask;
+            if (cmd == CmdControl) {
+              // Control
+              value &= 0x3F;
+              value = (value << 3) | (value >> 5); // ROL*3
+              sSidRegisters[0x04 + ch * 7] &= 0x06;
+              sSidRegisters[0x04 + ch * 7] |= value;
+            } else if (cmd == CmdInc) {
+              // Inc
+              if (value & 0x20) {
+                // Frequency
+                sFreqDelta[ch] += (value & 0x10) ? value | 0xE0 : value & 0x1F;
               } else {
-                cmd &= Cmd6BitMask;
-                if (cmd == CmdControl) {
-                  // Control
-                  value &= 0x3F;
-                  value = (value << 3) | (value >> 5); // ROL*3
-                  sSidRegisters[0x04 + ch * 7] &= 0x06;
-                  sSidRegisters[0x04 + ch * 7] |= value;
-
-                } else if (cmd == CmdInc) {
-                  // Inc
-                } else if (cmd == CmdSet) {
-                  // Set
-                }
+                // Pulse width
+                sPwDelta[ch] += (value & 0x10) ? value | 0xE0 : value & 0x1F;
+              }
+            } else if (cmd == CmdSet) {
+              // Set
+              if (value & 0x20) {
+                // Frequency
+                sFreqDelta[ch] = (value & 0x1F) << 11;
+              } else {
+                // Pulse width
+                sPwDelta[ch] = (value & 0x1F) << 7;
               }
             }
           }
         }
-        // Apply Vibrato
-        if (sVibratoDepth[ch] != 0) {
-          s16 vibrato = sVibratoLookup[sFrameCounter & 0x0F];
-          sSidRegisters[ch * 7] += vibrato << sVibratoDepth[ch];
-        }
-        sInstrumentPos[ch]++;
-        break;
-      } // end default
-    } // end switch
+      }
+    }
+    // Apply Vibrato
+    if (sVibratoDepth[ch] != 0) {
+      s16 vibrato = sVibratoLookup[sFrameCounter & 0x0F];
+      sSidRegisters[ch * 7] += vibrato << sVibratoDepth[ch];
+    }
+    sInstrumentPos[ch] = (sInstrumentPos[ch] + 1) & 0x1F;
+
+    // Set frequency
+    u8 note = sNote[ch] + sArpNote[ch];
+    u16 *freq = (u16 *) &sSidRegisters[0x00 + ch * 7];
+    *freq = (sFreqTablePalLo[note] | sFreqTablePalHi[note] << 8) + sFreqDelta[ch];
+
+    // Set pulse width
+    u8 *pw = &sSidRegisters[0x02 + ch * 7];
+    *pw = sPwDelta[ch];
+
+    // Apply Vibrato
+    if (sVibratoDepth[ch] != 0) {
+      s16 vibrato = (sVibratoLookup[sFrameCounter & 0x0F] << sVibratoDepth[ch]);;
+      if (sVibratoMode[ch]) {
+        *freq += vibrato;
+      } else {
+        *pw += vibrato;
+      }
+    }
+    
   } // end for
   sFrameCounter++;
 }
@@ -408,19 +442,23 @@ m6581_t sid;
 uint64_t pins = 0;
 u32 clocks = 0;
 
+void sidReset() {
+  m6581_reset(&sid);
+  pins = 0;
+  for (int i = 0; i < 32; ++i) {
+    sSidRegisters[i] = 0;
+  }
+  // Set volume
+  sSidRegisters[0x18] = 0x0F;
+}
+
 void sidInit() {
   m6581_init(&sid, &(m6581_desc_t) {
       .tick_hz = C64_FREQUENCY,
       .sound_hz = 44100,
       .magnitude = 1.0f,
   });
-  m6581_reset(&sid);
-  pins = 0;
-}
-
-void sidReset() {
-  m6581_reset(&sid);
-  pins = 0;
+  sidReset();
 }
 
 void sidTick(ChipSample *_buf, int _len) {

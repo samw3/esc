@@ -373,6 +373,10 @@ void playerTick() {
             sArpNote[ch] = value & 0x0F;
           } else if (cmd == CmdLoop) {
             // Loop
+            if (value == Cmd4Bit_Loop << 4) {
+              sInstrumentPos[ch] = 0;
+              return;
+            }
             sInstrumentPos[ch] -= ((value & 0x0F) + 1);
           } else {
             cmd &= Cmd6BitMask;

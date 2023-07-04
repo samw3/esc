@@ -41,82 +41,82 @@ typedef enum Cmd1Bit_t : unsigned {
 typedef struct InstrumentInstruction_t {
   union {
     // Control
-    struct {
+    struct __attribute__((packed)) {
+      unsigned controlReset: 1;
       unsigned controlTriangle: 1;
       unsigned controlSawtooth: 1;
       unsigned controlPulse: 1;
       unsigned controlNoise: 1;
       unsigned controlGate: 1;
-      unsigned controlReset: 1;
       Cmd6Bit cmd: 2; // Cmd6Bit_Control
-    } __attribute__((packed)) control;
+    } control;
     // Inc
-    struct {
+    struct __attribute__((packed)) {
       int incAmount: 5;
       unsigned incMode: 1; // 0 = PulseWidth, 1 = Frequency
       Cmd6Bit cmd: 2; // Cmd6Bit_Inc
-    } __attribute__((packed)) inc;
+    } inc;
     // Set
-    struct {
+    struct __attribute__((packed)) {
       unsigned setValue: 5;
       unsigned setMode: 1; // 0 = PulseWidth, 1 = Frequency
       Cmd6Bit cmd: 2; // Cmd6Bit_Set
-    } __attribute__((packed)) set;
+    } set;
     // Extra
-    struct {
+    struct __attribute__((packed)) {
       // Arpeggio = 0
       unsigned arpeggioNote: 4;
       Cmd4Bit cmd: 4; // Cmd4Bit_Arpeggio
-    } __attribute__((packed)) arpeggio;
-    struct {
+    } arpeggio;
+    struct __attribute__((packed)) {
       // Loop = 1
       unsigned loopPosition: 4;
       Cmd4Bit cmd: 4; // Cmd4Bit_Loop
-    } __attribute__((packed)) loop;
-    struct {
+    } loop;
+    struct __attribute__((packed)) {
       // Wait
       unsigned waitFrames: 3;
       Cmd3Bit cmd: 5; // Cmd3Bit_Wait
-    } __attribute__((packed)) wait;
-    struct {
+    } wait;
+    struct __attribute__((packed)) {
       // Vibrato
       unsigned vibratoDepth: 2;
       unsigned incMode: 1; // 0 = PulseWidth, 1 = Frequency
       Cmd3Bit cmd: 5; // Cmd3Bit_Vibrato
-    } __attribute__((packed)) vibrato;
-    struct {
+    } vibrato;
+    struct __attribute__((packed)) {
       // Sync
       unsigned syncEnable: 1;
       Cmd1Bit cmd: 7; // Cmd1Bit_Sync
-    } __attribute__((packed)) sync;
-    struct {
+    } sync;
+    struct __attribute__((packed)) {
       // Ring
       unsigned ringEnable: 1;
       Cmd1Bit cmd: 7; // Cmd1Bit_Ring
-    } __attribute__((packed)) ring;
-    struct {
+    } ring;
+    struct __attribute__((packed)) {
       // External Voice Flag
       unsigned externalVoiceFlag: 1;
       Cmd1Bit cmd: 7; // Cmd1Bit_ExternalVoiceFlag
-    } __attribute__((packed)) externalVoiceFlag;
-    struct {
+    } externalVoiceFlag;
+    struct __attribute__((packed)) {
       // Note off jmp position
       unsigned noteOffJmpPosition: 1;
       Cmd1Bit cmd: 7; // Cmd1Bit_NoteOffJmpPosition
-    } __attribute__((packed)) noteOffJmpPosition;
-    struct {
+    } noteOffJmpPosition;
+    struct __attribute__((packed)) {
       unsigned value6: 6;
       Cmd6Bit cmd6: 2;
     };
-    struct {
+    struct __attribute__((packed)) {
       unsigned value4: 4;
       Cmd4Bit cmd4: 4;
     };
-    struct {
+    struct __attribute__((packed)) {
       unsigned value3: 3;
       Cmd3Bit cmd3: 5;
     };
-    struct {
+    struct __attribute__((packed)) {
       unsigned value1: 1;
       Cmd1Bit cmd1: 7;
     };
@@ -125,18 +125,12 @@ typedef struct InstrumentInstruction_t {
 } __attribute__((packed)) InstrumentInstruction;
 
 typedef struct Instrument_t {
-  unsigned attack: 4;
   unsigned decay: 4;
-  unsigned sustain: 4;
+  unsigned attack: 4;
   unsigned release: 4;
+  unsigned sustain: 4;
   InstrumentInstruction program[30];
 } __attribute__((packed)) Instrument;
-
-typedef union InstrumentSet_t {
-  Instrument instruments[8];
-  InstrumentInstruction instructions[256];
-  u8 raw[256];
-} __attribute__((packed)) InstrumentSet;
 
 typedef enum SongTrackSpeed_t : unsigned {
   SongTrackSpeed_Normal = 0,
@@ -221,7 +215,7 @@ typedef struct Song_t {
 } __attribute__((packed)) Song;
 
 static Song sSong;
-static InstrumentSet sInstrumentSet;
+static Instrument sInstruments[8];
 static u8 sSidRegisters[0x20] = {0};
 
 //////////////////////////////////////////////////

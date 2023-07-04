@@ -283,6 +283,7 @@ static bool sExternalVoiceFlag[3] = {false};
 static u8 sSongSpeeds[4];
 static u8 sWaitCounter[3] = {0};
 static u8 sFrameCounter = 0;
+static u8 *sInstrumentSet = (u8 *) &(sInstruments[0]);
 
 void playerInit() {
   u8 songSpeed = (sSong.tempo + 3) << 2;
@@ -333,7 +334,7 @@ void playerTick() {
     }
 
     // Process instrument instructions
-    u8 cmd = sInstrumentSet.raw[sInstrumentPos[ch]];
+    u8 cmd = sInstrumentSet[sInstrumentPos[ch]];
     u8 value = cmd;
     if (cmd == CmdNoteOffJmpPos) {
 
@@ -517,17 +518,17 @@ static ChipError newSong() {
 
   // Init intstruments
   for (int i = 0; i < 8; i++) {
-    sInstrumentSet.instruments[i].attack = 0;
-    sInstrumentSet.instruments[i].decay = 0;
-    sInstrumentSet.instruments[i].sustain = 0;
-    sInstrumentSet.instruments[i].release = 0;
-    sInstrumentSet.instruments[i].program[0].raw = 0;
-    sInstrumentSet.instruments[i].program[0].control.cmd = Cmd6Bit_Control;
-    sInstrumentSet.instruments[i].program[0].control.controlPulse = 1;
-    sInstrumentSet.instruments[i].program[0].control.controlGate = 1;
+    sInstruments[i].attack = 0;
+    sInstruments[i].decay = 0;
+    sInstruments[i].sustain = 0xf;
+    sInstruments[i].release = 0;
+    sInstruments[i].program[0].raw = 0;
+    sInstruments[i].program[0].control.cmd = Cmd6Bit_Control;
+    sInstruments[i].program[0].control.controlTriangle = 1;
+    sInstruments[i].program[0].control.controlGate = 1;
     for (int j = 1; j < 30; j++) {
-      sInstrumentSet.instruments[i].program[j].loop.cmd = Cmd4Bit_Loop;
-      sInstrumentSet.instruments[i].program[j].loop.loopPosition = 0;
+      sInstruments[i].program[j].loop.cmd = Cmd4Bit_Loop;
+      sInstruments[i].program[j].loop.loopPosition = 0;
     }
   }
 
@@ -550,6 +551,7 @@ static ChipError init() {
   con_msgf("Size of instruments: %d", sizeof(sInstrumentSet));
   con_msgf("Size of SongTrack: %d", sizeof(SongTrack));
   con_msgf("Size of Instrument: %d", sizeof(Instrument));
+  con_msgf("Size of InstrumentInstruction: %d", sizeof(InstrumentInstruction));
 
 
   return NO_ERR;
@@ -961,13 +963,13 @@ static u8 getInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumentR
   switch (_instrumentParam) {
     case 0:
       switch (_instrumentRow) {
-        case 0: return sInstrumentSet.instruments[_instrument].attack;
-        case 1: return sInstrumentSet.instruments[_instrument].decay;
-        case 2: return sInstrumentSet.instruments[_instrument].sustain;
-        case 3: return sInstrumentSet.instruments[_instrument].release;
+        case 0: return sInstruments[_instrument].attack;
+        case 1: return sInstruments[_instrument].decay;
+        case 2: return sInstruments[_instrument].sustain;
+        case 3: return sInstruments[_instrument].release;
         default: {
           if (_instrumentRow > 33) return ' ';
-          InstrumentInstruction *instr = &sInstrumentSet.instruments[_instrument].program[_instrumentRow - 4];
+          InstrumentInstruction *instr = &sInstruments[_instrument].program[_instrumentRow - 4];
           Cmd6Bit cmd6Bit = (instr->raw >> 6) & 0x3;
           switch (cmd6Bit) {
             case Cmd6Bit_Control: {
@@ -1051,7 +1053,7 @@ static u8 getInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumentR
         case 3:return labelString("Release", _instrumentColumn);
         default: {
           if (_instrumentRow > 33) return ' ';
-          InstrumentInstruction *instr = &sInstrumentSet.instruments[_instrument].program[_instrumentRow - 4];
+          InstrumentInstruction *instr = &sInstruments[_instrument].program[_instrumentRow - 4];
           Cmd6Bit cmd6Bit = (instr->raw >> 6) & 0x3;
           switch (cmd6Bit) {
             case Cmd6Bit_Control: {
@@ -1157,18 +1159,18 @@ static u8 clearInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumen
 static bool setInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumentRow, u8 _instrumentColumn,
                               u8 _data) {
   switch (_instrumentRow) {
-    case 0:sInstrumentSet.instruments[_instrument].attack = _data;
+    case 0:sInstruments[_instrument].attack = _data;
       break;
-    case 1:sInstrumentSet.instruments[_instrument].decay = _data;
+    case 1:sInstruments[_instrument].decay = _data;
       break;
-    case 2:sInstrumentSet.instruments[_instrument].sustain = _data;
+    case 2:sInstruments[_instrument].sustain = _data;
       break;
-    case 3:sInstrumentSet.instruments[_instrument].release = _data;
+    case 3:sInstruments[_instrument].release = _data;
       break;
     default: {
       if (_instrumentRow > 33) return false;
       if (_instrumentParam == 0) {
-        InstrumentInstruction *instr = &sInstrumentSet.instruments[_instrument].program[_instrumentRow - 4];
+        InstrumentInstruction *instr = &sInstruments[_instrument].program[_instrumentRow - 4];
         if (_instrumentColumn == 0) {
           switch (_data) {
             case 'c': {

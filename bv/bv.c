@@ -6,7 +6,7 @@
 
 #define CHIPS_IMPL
 
-#include "../chips/chips/m6581.h"
+#include "../m6581.h"
 
 typedef enum Cmd6Bit_t : unsigned {
   Cmd6Bit_Control = 0,

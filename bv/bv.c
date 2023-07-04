@@ -306,14 +306,21 @@ void playerInit() {
   }
 }
 
-void playerPlayNote(u8 _channel, u8 _note, u8 _instrument) {
-  con_msgf("plonk %d %d %d", _note, _channel, _instrument);
-  sInstrumentPos[_channel] = (_instrument << 5) + 2;
-  sWaitCounter[_channel] = 0;
-  sArpNote[_channel] = 0;
-  sVibratoDepth[_channel] = 0;
-  sSidRegisters[0x05 + _channel * 7] = sInstrumentSet.raw[sInstrumentPos[_channel] - 2];
-  sSidRegisters[0x06 + _channel * 7] = sInstrumentSet.raw[sInstrumentPos[_channel] - 1];
+void playerPlayNote(u8 _channel, u8 _note, u8 _instrument, bool _isDown) {
+  if (_isDown) {
+    sNote[_channel] = _note;
+    sInstrumentPos[_channel] = (_instrument << 5) + 2;
+    sWaitCounter[_channel] = 0;
+    sArpNote[_channel] = 0;
+    sVibratoDepth[_channel] = 0;
+    sSidRegisters[0x05 + _channel * 7] = sInstrumentSet[sInstrumentPos[_channel] - 2]; // AD
+    sSidRegisters[0x06 + _channel * 7] = sInstrumentSet[sInstrumentPos[_channel] - 1]; // SR
+  } else {
+    // TODO: Implement note off
+    sInstrumentPos[_channel] = 0;
+    sWaitCounter[_channel] = 0;
+    sSidRegisters[0x04 + _channel * 7] &= 0xFE;
+  }
 }
 
 void playerTick() {

@@ -1605,7 +1605,7 @@ bool tracker_asciiKey(int _key) {
   return false;
 }   /* tracker_asciiKey */
 
-bool tracker_pianoKey(int _key, bool _isRepeat) {
+bool tracker_pianoKey(int _key, bool _isRepeat, bool _isDown) {
   // Adjust for keyboard octaves
   if (_key > 16) {
     _key -= 5;
@@ -1617,7 +1617,7 @@ bool tracker_pianoKey(int _key, bool _isRepeat) {
     note = sOctave * 12 + _key - 1;
   }
   if (!_isRepeat) {
-    sChip->plonk(note, sSelectedChannel, sSelectedInstrument);
+    sChip->plonk(note, sSelectedChannel, sSelectedInstrument, _isDown);
     sPlonkNote = note;
   }
   switch (sTrackerState) {

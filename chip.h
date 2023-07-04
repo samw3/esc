@@ -201,7 +201,7 @@ typedef struct {
 
   u8 (*getPlayerPatternRow)();
 
-  void (*plonk)(u8 _note, u8 _channelNum, u8 _instrument);
+  void (*plonk)(u8 _note, u8 _channelNum, u8 _instrument, bool _isDown);
 
   void (*playSongFrom)(u8 _songRow, u8 _songColumn, u8 _patternRow, u8 _patternColumn);
 

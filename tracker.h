@@ -44,7 +44,7 @@ bool tracker_textEditKey(TrackerTextEditKey _key);
 
 bool tracker_asciiKey(int _key);
 
-bool tracker_pianoKey(int _key, bool _isRepeat);
+bool tracker_pianoKey(int _key, bool _isRepeat, bool _isDown);
 
 bool tracker_hexKey(int _hex);
 

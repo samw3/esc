@@ -712,8 +712,10 @@ int main(int argc, char *argv[]) {
             tracker_mouseDownAt(x, y);
           }
           break;
-        case SDL_KEYDOWN: {
+        case SDL_KEYDOWN:
+        case SDL_KEYUP: {
           bool keyFound = false;
+          bool isDown = (e.type == SDL_KEYDOWN);
 
           {
             TrackerTextEditKey key = TEK_NONE;
@@ -779,13 +781,13 @@ int main(int argc, char *argv[]) {
                 default: break;
               }
             }
-            if (key != TEK_NONE) {
+            if (key != TEK_NONE && isDown) {
               keyFound = tracker_textEditKey(key);
             }
           }
 
           // Check for ascii keys
-          if (!keyFound) {
+          if (!keyFound && isDown) {
             u32 key = e.key.keysym.sym;
             if (key > 32 && key < 127) {
               if (KMOD_SHIFT & e.key.keysym.mod) {
@@ -830,7 +832,7 @@ int main(int argc, char *argv[]) {
           }
 
           // Check for hex keys
-          if (!keyFound) {
+          if (!keyFound && isDown) {
             for (size_t i = 0; i < 16; i++) {
               if ((hexKeys[i] == e.key.keysym.scancode) && (e.key.keysym.mod == KMOD_NONE)) {
                 keyFound = tracker_hexKey(i);
@@ -843,14 +845,14 @@ int main(int argc, char *argv[]) {
           if (!keyFound) {
             for (size_t i = 0; i < pianoKeysCount; i++) {
               if ((pianoKeys[i] == e.key.keysym.scancode) && (e.key.keysym.mod == KMOD_NONE)) {
-                keyFound = tracker_pianoKey(i, e.key.repeat != 0);
+                keyFound = tracker_pianoKey(i, e.key.repeat != 0, isDown);
                 break;
               }
             }
           }
 
           // Handle action keys
-          if (!keyFound) {
+          if (!keyFound && isDown) {
             for (size_t i = 0; i < actionsCount; i++) {
               ActionTableEntry a = actions[i];
               if ((a.scancode == e.key.keysym.scancode) &&

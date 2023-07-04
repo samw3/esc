@@ -1434,7 +1434,7 @@ static u8 getPlayerPatternRow() {
   return trackpos;
 }
 
-static void plonk(u8 _note, u8 _channelNum, u8 _instrument) {
+static void plonk(u8 _note, u8 _channelNum, u8 _instrument, bool _isDown) {
   con_msgf("%d", _note);
   if (_note == 255) {
     channel[_channelNum].volumeTable = 0;

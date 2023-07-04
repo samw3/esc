@@ -964,7 +964,7 @@ static u8 getPlayerPatternRow() {
   return trackpos;
 }
 
-static void plonk(u8 _note, u8 _channelNum, u8 _instrument) {
+static void plonk(u8 _note, u8 _channelNum, u8 _instrument, bool _isDown) {
   channel[_channelNum].tnote = _note + 1;
   channel[_channelNum].inum = _instrument;
   channel[_channelNum].iptr = 0;

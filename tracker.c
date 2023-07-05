@@ -561,7 +561,7 @@ void tracker_init() {
   sChip->init();
   sChip->loadSong(sFilename);
   sSelectedPattern = sChip->getPatternNum(sSongY, sSelectedChannel);
-  con_msgf("ESC v0.1 (%s)", sChipName);
+  con_msgf("ESC v0.5 (%s)", sChipName);
 
   int count = sChip->getNumTableKinds();
   sSelectedTable = malloc(sizeof(u16) * count);
@@ -931,11 +931,21 @@ int tracker_drawInstrumentEditor(int _x, int _y, int _height) {
       width++;
       paramWidth = (width > paramWidth) ? width : paramWidth;
     }
+
     // Draw params
     con_setAttrib(0x08);
     con_printXY(_x + 1 + instWidth, _y + 2,
                 sChip->getInstrumentParamName(sSelectedInstrument, param, paramWidth));
     for (size_t instRow = 0; instRow < instLen; instRow++) {
+      // Highlight param
+      for (int i = 0; i < paramWidth; ++i) {
+        if (instRow == sInstrumentY) {
+          u16 attrib = con_getAttribXY(_x + 1 + instWidth + i, _y + 3 + instRow - instOffset);
+          attrib = (attrib & 0xF0F) | 0x40;
+          con_setAttribXY(_x + 1 + instWidth + i, _y + 3 + instRow - instOffset, attrib);
+        }
+      }
+
       if (instRow >= instOffset && instRow - instOffset < _height - 2) {
         con_gotoXY(_x + 1 + instWidth, _y + 3 + instRow - instOffset);
         int numData = sChip->getNumInstrumentData(sSelectedInstrument, param, instRow);
@@ -945,11 +955,18 @@ int tracker_drawInstrumentEditor(int _x, int _y, int _height) {
           if (instRow == sInstrumentY) {
             if (dataColumn == sInstrumentX &&
                 param == sInstrumentParam &&
-                sTrackerState == TRACKER_EDIT_INSTRUMENT &&
                 !sTEInstrumentName->isActive) {
-              con_setAttrib(0x14F);
+              if (sTrackerState == TRACKER_EDIT_INSTRUMENT) {
+                if (sbEditing) {
+                  con_setAttrib(0x14F);
+                } else {
+                  con_setAttrib(0xF4);
+                }
+              } else {
+                con_setAttrib(0x4F);
+              }
             } else {
-              con_setAttrib(0x4F);
+              con_setAttrib(0x47);
             }
           } else {
             con_setAttrib(0x07);
@@ -980,7 +997,11 @@ int tracker_drawInstrumentEditor(int _x, int _y, int _height) {
               break;
           }
         }
-        con_setAttrib(0x07);
+        if (instRow == sInstrumentY) {
+          con_setAttrib(0x4F);
+        } else {
+          con_setAttrib(0x07);
+        }
         if (param < (numParams - 1)) {
           con_putc(' ');
         }
@@ -990,13 +1011,6 @@ int tracker_drawInstrumentEditor(int _x, int _y, int _height) {
   }
   if (instWidth < 16) {
     instWidth = 16;
-  }
-
-  // Highlight current row
-  for (int i = 0; i < instWidth; ++i) {
-    u16 attrib = con_getAttribXY(_x + 1 + i, _y + 3 + sInstrumentY - instOffset);
-    attrib = (attrib & 0xF0F) | 0x40;
-    con_setAttribXY(_x + 1 + i, _y + 3 + sInstrumentY - instOffset, attrib);
   }
 
   // Draw title
@@ -1060,12 +1074,11 @@ int tracker_drawSongEditor(int _x, int _y, int _height) {
       con_printf("%02X:", songRow);
 
       con_setAttrib(0x07);
-      // attroff(A_DIM);
       for (int channel = 0; channel < numChannels; channel++) {
         int numCols = sChip->getNumSongDataColumns(channel);
         for (size_t dataColumn = 0; dataColumn < numCols; dataColumn++) {
           if (songRow == sSongY) {
-            con_setAttrib(0x4F);
+            con_setAttrib(0x47);
             if (channel == sSelectedChannel) {
               if (dataColumn == sSongX && sTrackerState == TRACKER_EDIT_SONG) {
                 if (sbEditing) {
@@ -1074,7 +1087,7 @@ int tracker_drawSongEditor(int _x, int _y, int _height) {
                   con_setAttrib(0xF4);
                 }
               } else {
-                con_setAttrib(0xF4);
+                con_setAttrib(0x4F);
               }
             }
           }
@@ -1181,7 +1194,11 @@ int tracker_drawMetaData(int _x, int _y, int _width) {
         con_putc('[');
         if (sMetaDataY == i && sTrackerState == TRACKER_EDIT_META_DATA
             ) {
-          con_setAttrib(0xF4);
+          if (sbEditing) {
+            con_setAttrib(0x14F);
+          } else {
+            con_setAttrib(0xF4);
+          }
         }
         con_print(metaData->options[metaData->value]);
         if (sMetaDataY == i && sTrackerState == TRACKER_EDIT_META_DATA
@@ -1984,26 +2001,44 @@ ACTION(ACTION_MOVE_DOWN, TRACKER_EDIT_INSTRUMENT) {
 }
 
 ACTION(ACTION_NEXT_INSTRUMENT_PARAM, TRACKER_EDIT_INSTRUMENT) {
-  sInstrumentParam++;
-  if (sInstrumentParam == sChip->getNumInstrumentParams(sSelectedInstrument)) {
-    sInstrumentParam = 0;
-  }
-  int numDataColumns = sChip->getNumInstrumentData(sSelectedInstrument, sInstrumentParam, sInstrumentY);
-  if (sInstrumentX >= numDataColumns) {
-    sInstrumentX = numDataColumns - 1;
-  }
+  bool isLabel = true;
+  do {
+    sInstrumentParam++;
+    if (sInstrumentParam == sChip->getNumInstrumentParams(sSelectedInstrument)) {
+      sInstrumentParam = 0;
+    }
+    int numDataColumns = sChip->getNumInstrumentData(sSelectedInstrument, sInstrumentParam, sInstrumentY);
+    if (sInstrumentX >= numDataColumns) {
+      sInstrumentX = numDataColumns - 1;
+    }
+    for (int i = 0; i < numDataColumns; i++) {
+      if (sChip->getInstrumentDataType(sSelectedInstrument, sInstrumentParam, sInstrumentY, i) != CDT_LABEL) {
+        isLabel = false;
+        break;
+      }
+    }
+  } while (isLabel);
 }
 
 ACTION(ACTION_PREV_INSTRUMENT_PARAM, TRACKER_EDIT_INSTRUMENT) {
-  if (sInstrumentParam == 0) {
-    sInstrumentParam = sChip->getNumInstrumentParams(sSelectedInstrument) - 1;
-  } else {
-    sInstrumentParam--;
-  }
-  int numDataColumns = sChip->getNumInstrumentData(sSelectedInstrument, sInstrumentParam, sInstrumentY);
-  if (sInstrumentX >= numDataColumns) {
-    sInstrumentX = numDataColumns - 1;
-  }
+  bool isLabel = true;
+  do {
+    if (sInstrumentParam == 0) {
+      sInstrumentParam = sChip->getNumInstrumentParams(sSelectedInstrument) - 1;
+    } else {
+      sInstrumentParam--;
+    }
+    int numDataColumns = sChip->getNumInstrumentData(sSelectedInstrument, sInstrumentParam, sInstrumentY);
+    if (sInstrumentX >= numDataColumns) {
+      sInstrumentX = numDataColumns - 1;
+    }
+    for (int i = 0; i < numDataColumns; i++) {
+      if (sChip->getInstrumentDataType(sSelectedInstrument, sInstrumentParam, sInstrumentY, i) != CDT_LABEL) {
+        isLabel = false;
+        break;
+      }
+    }
+  } while (isLabel);
 }
 
 void writeLEu32(FILE *f, u32 val) {

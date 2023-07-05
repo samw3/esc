@@ -616,38 +616,65 @@ static ChipError saveSong(const char *filename) {
 }
 
 static ChipError insertSongRow(u8 _atSongRow) {
+  // TODO: Implement
   return NO_ERR;
 }
 
 static ChipError addSongRow() {
+  // TODO: Implement
   return NO_ERR;
 }
 
 static ChipError deleteSongRow(u8 _songRow) {
+  // TODO: Implement
   return NO_ERR;
 }
 
 static ChipError insertPatternRow(u8 _channelNum, u8 _patternNum, u8 _atPatternRow) {
+  // TODO: Implement
   return NO_ERR;
 }
 
 static ChipError addPatternRow(u8 _channelNum, u8 _patternNum) {
+  // TODO: Implement
   return NO_ERR;
 }
 
 static ChipError deletePatternRow(u8 _channelNum, u8 _patternNum, u8 _patternRow) {
+  // TODO: Implement
   return NO_ERR;
 }
 
 static ChipError insertInstrumentRow(u8 _instrument, u8 _atInstrumentRow) {
+  con_msgf("insertInstrumentRow(%d, %d)", _instrument, _atInstrumentRow);
+  if (_atInstrumentRow < 4) return ERR_NOT_SUPPORTED;
+  if (_atInstrumentRow > 31) return ERR_NOT_SUPPORTED;
+  if (_instrument > 7) return ERR_NOT_SUPPORTED;
+  u8 start = _atInstrumentRow - 4;
+  u8 end = 30 - 4;
+  for (int i = end; i >= start; i--) {
+    sInstruments[_instrument].program[i + 1] = sInstruments[_instrument].program[i];
+  }
+  sInstruments[_instrument].program[start].loop.cmd = Cmd4Bit_Loop;
+  sInstruments[_instrument].program[start].loop.loopPosition = 0;
   return NO_ERR;
 }
 
 static ChipError addInstrumentRow(u8 _instrument) {
-  return NO_ERR;
+  return ERR_NOT_SUPPORTED;
 }
 
 static ChipError deleteInstrumentRow(u8 _instrument, u8 _instrumentRow) {
+  if (_instrumentRow < 4) return ERR_NOT_SUPPORTED;
+  if (_instrumentRow > 31) return ERR_NOT_SUPPORTED;
+  if (_instrument > 7) return ERR_NOT_SUPPORTED;
+  u8 start = _instrumentRow - 4;
+  u8 end = 30 - 4;
+  for (int i = start; i < end; i++) {
+    sInstruments[_instrument].program[i] = sInstruments[_instrument].program[i + 1];
+  }
+  sInstruments[_instrument].program[end].loop.cmd = Cmd4Bit_Loop;
+  sInstruments[_instrument].program[end].loop.loopPosition = 0;
   return NO_ERR;
 }
 
@@ -1190,8 +1217,7 @@ static u8 getInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumentR
     }
     default: return 0;
   }
-
-  return 0; // TODO: Implement
+  return 0;
 }
 
 static const char *getInstrumentHelp(u8 _instrument, u8 _instrumentParam, u8 _instrumentRow, u8 _instrumentColumn) {
@@ -1199,7 +1225,28 @@ static const char *getInstrumentHelp(u8 _instrument, u8 _instrumentParam, u8 _in
 }
 
 static u8 clearInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumentRow, u8 _instrumentColumn) {
-  return 0; // TODO: Implement
+  switch (_instrumentRow) {
+    case 0: {
+      sInstruments[_instrument].attack = 0;
+      break;
+    }
+    case 1: {
+      sInstruments[_instrument].decay = 0;
+      break;
+    }
+    case 2: {
+      sInstruments[_instrument].sustain = 0;
+      break;
+    }
+    case 3: {
+      sInstruments[_instrument].release = 0;
+      break;
+    }
+    default: {
+      sInstruments[_instrument].program[_instrumentRow - 4].loop.loopPosition = 0;
+    }
+  }
+  return 0;
 }
 
 static bool setInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumentRow, u8 _instrumentColumn,
@@ -1354,15 +1401,16 @@ static bool setInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumen
       break;
     }
   }
-  return true; // TODO: Implement
+  return true;
 }
 
 static void swapInstrumentRow(u8 _instrument, u8 _instrumentRow1, u8 _instrumentRow2) {
-/*
-    struct instrline temp = instrument[_instrument].line[_instrumentRow1];
-    instrument[_instrument].line[_instrumentRow1] = instrument[_instrument].line[_instrumentRow2];
-    instrument[_instrument].line[_instrumentRow2] = temp;
-*/
+  if (_instrumentRow1 < 4 || _instrumentRow2 < 4) return;
+  if (_instrumentRow1 > 31 || _instrumentRow2 > 31) return;
+  if (_instrumentRow1 == _instrumentRow2) return;
+  InstrumentInstruction temp = sInstruments[_instrument].program[_instrumentRow1 - 4];
+  sInstruments[_instrument].program[_instrumentRow1 - 4] = sInstruments[_instrument].program[_instrumentRow2 - 4];
+  sInstruments[_instrument].program[_instrumentRow2 - 4] = temp;
 }
 
 static bool useTables() { return false; }

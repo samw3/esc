@@ -49,6 +49,7 @@ typedef const char *ChipError;
 #define ERR_FILE_NOT_FOUND ("File not found")
 #define ERR_FILE_WRITE ("File write error")
 #define ERR_FILE_READ ("File read error")
+#define ERR_NOT_SUPPORTED ("Not supported")
 
 typedef struct {
   // Tracker Commands

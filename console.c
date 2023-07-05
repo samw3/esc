@@ -586,9 +586,9 @@ int main(int argc, char *argv[]) {
   if (SDL_OpenAudio(&requested, &obtained) < 0) {
     err(1, "SDL_OpenAudio");
   }
-  fprintf(stderr, "freq %d\n", obtained.freq);
-  fprintf(stderr, "format %x\n", obtained.format);
-  fprintf(stderr, "samples %d\n", obtained.samples);
+  //fprintf(stderr, "freq %d\n", obtained.freq);
+  //fprintf(stderr, "format %x\n", obtained.format);
+  //fprintf(stderr, "samples %d\n", obtained.samples);
 
   // Use OpenGL 2.1
   // SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 );

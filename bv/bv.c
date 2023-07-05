@@ -221,6 +221,8 @@ static u8 sSidRegisters[0x20] = {0};
 //////////////////////////////////////////////////
 // Playroutine
 
+void sidReset();
+
 #define Cmd1BitMask 0xFE
 #define Cmd3BitMask 0xF8
 #define Cmd4BitMask 0xF0
@@ -447,6 +449,16 @@ void playerTick() {
     sInstrumentPos[ch] = ((sInstrumentPos[ch] + 1) & 0x1F) | (sInstrumentPos[ch] & 0xE0);
   } // end for
   sFrameCounter++;
+}
+
+void playerPlay() {
+  playerInit();
+  sIsPlaying = true;
+}
+
+void playerStop() {
+  sIsPlaying = false;
+  sidReset();
 }
 
 
@@ -1451,15 +1463,19 @@ static void plonk(u8 _note, u8 _channelNum, u8 _instrument, bool _isDown) {
 }
 
 static void playSongFrom(u8 _songRow, u8 _songColumn, u8 _patternRow, u8 _patternColumn) {
+  // TODO: Implement
 }
 
-static void playPatternFrom(u8 _songRow, u8 _songColumn, u8 _patternRow, u8 _patternColumn) {}
+static void playPatternFrom(u8 _songRow, u8 _songColumn, u8 _patternRow, u8 _patternColumn) {
+  // TODO: Implement
+}
 
 static bool isPlaying() {
-  return false; // TODO: Implement
+  return sIsPlaying;
 }
 
 static void silence() {
+  playerStop();
 }
 
 static void stop() {
@@ -1468,7 +1484,6 @@ static void stop() {
 
 static void getSamples(ChipSample *_buf, int _len) {
   sidTick(_buf, _len);
-  //memset(_buf, 0, _len * sizeof(ChipSample));
 }
 
 static void preferredWindowSize(u32 *_width, u32 *_height) {

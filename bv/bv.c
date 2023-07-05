@@ -311,7 +311,14 @@ void playerPlayNote(u8 _channel, u8 _note, u8 _instrument, bool _isDown) {
     sSidRegisters[0x05 + _channel * 7] = sInstrumentSet[sInstrumentPos[_channel] - 2]; // AD
     sSidRegisters[0x06 + _channel * 7] = sInstrumentSet[sInstrumentPos[_channel] - 1]; // SR
   } else {
-    // TODO: Implement note off
+    sInstrumentPos[_channel] = (_instrument << 5) + 2;
+    u8 end = sInstrumentPos[_channel] + 30;
+    for (u8 i = sInstrumentPos[_channel]; i < end; ++i) {
+      if (sInstrumentSet[i] == CmdNoteOffJmpPos) {
+        sInstrumentPos[_channel] = i + 1;
+        return;
+      }
+    }
     sInstrumentPos[_channel] = 0;
     sWaitCounter[_channel] = 0;
     sSidRegisters[0x04 + _channel * 7] &= 0xFE;

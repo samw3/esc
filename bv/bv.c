@@ -572,6 +572,29 @@ static ChipError newSong() {
   return NO_ERR;
 }
 
+static u8 adsrLabelString(char adsr, u8 value, u8 col) {
+  static const char *aTimeLabels[16] = {
+      "2ms  ", "8ms  ", "16ms ", "24ms ", "38ms ", "56ms ", "68ms ", "80ms ",
+      "100ms", "240ms", "500ms", "800ms", "1s   ", "3s   ", "5s   ", "8s   "
+  };
+  static const char *drTimeLabels[16] = {
+      "6ms  ", "24ms ", "48ms ", "72ms ", "114ms", "168ms", "204ms", "240ms",
+      "300ms", "720ms", "1.5s ", "2.4s ", "3s   ", "9s   ", "15s  ", "24s  "
+  };
+  static const char *hexChars = "0123456789ABCDEF";
+  if (col == 0) return adsr;
+  if (col == 1) return ':';
+  if (col < 7) {
+    switch (adsr) {
+      case 'A':return aTimeLabels[value][col - 2];
+      case 'D':
+      case 'R':return drTimeLabels[value][col - 2];
+      case 'S':return col == 2 ? hexChars[value & 0xF] : ' ';
+    }
+  }
+  return ' ';
+}
+
 static u8 labelString(const char *label, u8 col) {
   if (col < strlen(label)) {
     return label[col];
@@ -1138,11 +1161,12 @@ static u8 getInstrumentData(u8 _instrument, u8 _instrumentParam, u8 _instrumentR
         }
       }
     case 1: { // Return Command info
+      Instrument *in = &sInstruments[_instrument];
       switch (_instrumentRow) {
-        case 0:return labelString("Attack", _instrumentColumn);
-        case 1:return labelString("Decay", _instrumentColumn);
-        case 2:return labelString("Sustain", _instrumentColumn);
-        case 3:return labelString("Release", _instrumentColumn);
+        case 0: return adsrLabelString('A', in->attack, _instrumentColumn);
+        case 1: return adsrLabelString('D', in->decay, _instrumentColumn);
+        case 2: return adsrLabelString('S', in->sustain, _instrumentColumn);
+        case 3: return adsrLabelString('R', in->release, _instrumentColumn);
         default: {
           if (_instrumentRow > 33) return ' ';
           InstrumentInstruction *instr = &sInstruments[_instrument].program[_instrumentRow - 4];

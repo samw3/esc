@@ -953,15 +953,27 @@ static u8 getTableData(u8 _tableKind, u16 _table, u8 _tableColumn) { return 0; }
 
 static u8 setTableData(u8 _tableKind, u16 _table, u8 _tableColumn, u8 _data) { return 0; }
 
-static u8 getPlayerSongRow() {
+static u8 getPlayerSongRow(u8 _channel) {
   if (songpos == 0) {
     return 0;
   }
   return songpos - 1;
 }
 
-static u8 getPlayerPatternRow() {
+static u8 getPlayerPatternRow(u8 _channel) {
   return trackpos;
+}
+
+static u8 getPlayerPattern(u8 _channelNum) {
+  return 0; // TODO: Implement
+}
+
+static u8 getPlayerInstrumentRow(u8 _channelNum) {
+  return 0; // TODO: Implement
+}
+
+static u8 getPlayerInstrument(u8 _channelNum) {
+  return 0; // TODO: Implement
 }
 
 static void plonk(u8 _note, u8 _channelNum, u8 _instrument, bool _isDown) {
@@ -1167,6 +1179,9 @@ ChipInterface chip_lft = {
     // Player
     getPlayerSongRow,
     getPlayerPatternRow,
+    getPlayerPattern,
+    getPlayerInstrumentRow,
+    getPlayerInstrument,
     plonk,
     playSongFrom,
     playPatternFrom,

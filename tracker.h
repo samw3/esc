@@ -3,7 +3,7 @@
 #define TRACKER_H value
 
 #define MAJOR_VERSION 0
-#define MINOR_VERSION 1
+#define MINOR_VERSION 5
 
 #include "chip.h"
 #include "types.h"

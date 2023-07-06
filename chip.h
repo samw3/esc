@@ -202,9 +202,15 @@ typedef struct {
   u8 (*setTableData)(u8 _tableKind, u16 _table, u8 _tableColumn, u8 _data);
 
   // Player
-  u8 (*getPlayerSongRow)();
+  u8 (*getPlayerSongRow)(u8 _channelNum);
 
-  u8 (*getPlayerPatternRow)();
+  u8 (*getPlayerPatternRow)(u8 _channelNum);
+
+  u8 (*getPlayerPattern)(u8 _channelNum);
+
+  u8 (*getPlayerInstrumentRow)(u8 _channelNum);
+
+  u8 (*getPlayerInstrument)(u8 _channelNum);
 
   void (*plonk)(u8 _note, u8 _channelNum, u8 _instrument, bool _isDown);
 

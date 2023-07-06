@@ -561,7 +561,6 @@ void tracker_init() {
   sChip->init();
   sChip->loadSong(sFilename);
   sSelectedPattern = sChip->getPatternNum(sSongY, sSelectedChannel);
-  con_msgf("ESC v0.5 (%s)", sChipName);
 
   int count = sChip->getNumTableKinds();
   sSelectedTable = malloc(sizeof(u16) * count);
@@ -1031,6 +1030,18 @@ int tracker_drawInstrumentEditor(int _x, int _y, int _height) {
   }
   con_printfXY(_x, _y + 2, "%02X", sSelectedInstrument);
 
+  // Highlight playing instrument
+  for (int i = 0; i < sChip->getNumChannels(); i++) {
+    if (sChip->getPlayerInstrument(i) == sSelectedInstrument) {
+      for (int j = 0; j < instWidth; j++) {
+        u16 attrib = con_getAttribXY(_x + j, _y + 2);
+        attrib = (attrib & 0xFF0) | 0xB;
+        con_setAttribXY(_x + j, _y + 3 + sChip->getPlayerInstrumentRow(i), attrib);
+      }
+      break;
+    }
+  }
+
   // Draw double line
   con_setAttrib(0x8);
   for (int i = 0; i <= _height; i++) {
@@ -1349,8 +1360,8 @@ void tracker_drawScreen() {
   clearHits();
   if (sChip->isPlaying()) {
     // TODO: add follow flag
-    sSongY = sChip->getPlayerSongRow();
-    sPatternY = sChip->getPlayerPatternRow();
+    sSongY = sChip->getPlayerSongRow(sSelectedChannel);
+    sPatternY = sChip->getPlayerPatternRow(sSelectedChannel);
     sSelectedPattern = sChip->getPatternNum(sSongY, sSelectedChannel);
   }
   con_cls();

@@ -447,13 +447,26 @@ void playerTick() {
 }
 
 void playerPlay(int songPos, int patternPos) {
-  playerInit();
-  sIsPlaying = true;
+  // TODO: Implement
+}
+
+static void playerPlayPattern(u8 songRow, u8 patternRow) {
+  // TODO: Implement
 }
 
 void playerStop() {
   sIsPlaying = false;
   sidReset();
+  for (int i = 0; i < 3; ++i) {
+    sInstrumentPos[i] = 0;
+    sWaitCounter[i] = 0;
+    sVibratoDepth[i] = 0;
+    sVibratoMode[i] = 0;
+    sArpNote[i] = 0;
+    sFreqDelta[i] = 0;
+    sPwDelta[i] = 0;
+    sExternalVoiceFlag[i] = 0;
+  }
 }
 
 
@@ -1544,7 +1557,7 @@ static void playSongFrom(u8 _songRow, u8 _songColumn, u8 _patternRow, u8 _patter
 }
 
 static void playPatternFrom(u8 _songRow, u8 _songColumn, u8 _patternRow, u8 _patternColumn) {
-  //playerPlayPattern(_songRow, _patternRow);
+  playerPlayPattern(_songRow, _patternRow);
 }
 
 static bool isPlaying() {

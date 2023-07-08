@@ -1218,6 +1218,8 @@ int tracker_drawMetaData(int _x, int _y, int _width) {
         }
         con_putc(']');
       }
+      case CMDT_HEX:break; // TODO: Implement
+      case CMDT_DECIMAL:break; // TODO: Implement
     }
   }
   return sChip->getNumMetaData();
@@ -2389,6 +2391,9 @@ ACTION(ACTION_MOVE_LEFT, TRACKER_EDIT_META_DATA) {
       }
       sChip->setMetaData(sMetaDataY, metaData);
     }
+    case CMDT_STRING:break; // TODO: Implement
+    case CMDT_HEX:break; // TODO: Implement
+    case CMDT_DECIMAL:break; // TODO: Implement
   }
 }
 
@@ -2403,6 +2408,9 @@ ACTION(ACTION_MOVE_RIGHT, TRACKER_EDIT_META_DATA) {
       }
       sChip->setMetaData(sMetaDataY, metaData);
     }
+    case CMDT_STRING:break; // TODO: Implement
+    case CMDT_HEX:break; // TODO: Implement
+    case CMDT_DECIMAL:break; // TODO: Implement
   }
 }
 

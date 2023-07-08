@@ -1,6 +1,5 @@
 #include "../chip.h"
 #include <stdio.h>
-#include <ctype.h>
 #include <string.h>
 #include "../console.h"
 
@@ -659,21 +658,6 @@ static ChipError saveSong(const char *filename) {
   return NO_ERR;
 }
 
-static ChipError insertPatternRow(u8 _channelNum, u8 _patternNum, u8 _atPatternRow) {
-  // TODO: Implement
-  return NO_ERR;
-}
-
-static ChipError addPatternRow(u8 _channelNum, u8 _patternNum) {
-  // TODO: Implement
-  return NO_ERR;
-}
-
-static ChipError deletePatternRow(u8 _channelNum, u8 _patternNum, u8 _patternRow) {
-  // TODO: Implement
-  return NO_ERR;
-}
-
 static ChipError insertInstrumentRow(u8 _instrument, u8 _atInstrumentRow) {
   con_msgf("insertInstrumentRow(%d, %d)", _instrument, _atInstrumentRow);
   if (_atInstrumentRow < 4) return ERR_NOT_SUPPORTED;
@@ -992,6 +976,42 @@ static u8 setPatternData(u8 _channelNum, u8 _patternNum, u8 _patternRow, u8 _pat
     default:break;
   } /* switch */
   return 0;
+}
+
+static ChipError insertPatternRow(u8 _channelNum, u8 _patternNum, u8 _atPatternRow) {
+  for (u8 i = getPatternLen(_patternNum) - 1; i > _atPatternRow; i--) {
+    if (sSong.meter == SongMeter_4_4) {
+      sSong.pattern44[_patternNum][i] = sSong.pattern44[_patternNum][i - 1];
+    } else {
+      sSong.pattern34[_patternNum][i] = sSong.pattern34[_patternNum][i - 1];
+    }
+  }
+  if (sSong.meter == SongMeter_4_4) {
+    sSong.pattern44[_patternNum][_atPatternRow] = (SongLine) {0};
+  } else {
+    sSong.pattern34[_patternNum][_atPatternRow] = (SongLine) {0};
+  }
+  return NO_ERR;
+}
+
+static ChipError addPatternRow(u8 _channelNum, u8 _patternNum) {
+  return ERR_NOT_SUPPORTED;
+}
+
+static ChipError deletePatternRow(u8 _channelNum, u8 _patternNum, u8 _patternRow) {
+  for (u8 i = _patternRow; i < getPatternLen(_patternNum) - 1; i++) {
+    if (sSong.meter == SongMeter_4_4) {
+      sSong.pattern44[_patternNum][i] = sSong.pattern44[_patternNum][i + 1];
+    } else {
+      sSong.pattern34[_patternNum][i] = sSong.pattern34[_patternNum][i + 1];
+    }
+  }
+  if (sSong.meter == SongMeter_4_4) {
+    sSong.pattern44[_patternNum][getPatternLen(_patternNum) - 1] = (SongLine) {0};
+  } else {
+    sSong.pattern34[_patternNum][getPatternLen(_patternNum) - 1] = (SongLine) {0};
+  }
+  return NO_ERR;
 }
 
 static u8 getMinOctave() {

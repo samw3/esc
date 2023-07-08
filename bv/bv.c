@@ -270,9 +270,9 @@ static const s8 sVibratoLookup[16] = {
 };
 
 static bool sIsPlaying = false;
-static u8 sLineCounter[3] = {0};
-static SongTrack *sTrack[3] = {0};
-static SongLine *sLine[3] = {0};
+static u8 sSongPos[3] = {0};
+static u8 sPatternPos[3] = {0};
+static u8 sPattern[3] = {0};
 static u8 sInstrumentPos[3] = {0};
 static u8 sNote[3] = {0};
 static u8 sArpNote[3] = {0};
@@ -291,15 +291,11 @@ void playerInit() {
   u8 songSpeed = (sSong.tempo + 3) << 2;
   for (s8 i = 3; i >= 0; --i) sSongSpeeds[i] = songSpeed << sSong.tracks[i][0].speed;
   for (s8 ch = 2; ch >= 0; --ch) {
-    if (sSong.meter == SongMeter_4_4) {
-      sTrack[ch] = &sSong.tracks[ch][0];
-      sLine[ch] = sSong.pattern44[sTrack[ch]->pattern];
-    } else {
-      sTrack[ch] = &sSong.tracks[ch][0];
-      sLine[ch] = sSong.pattern34[sTrack[ch]->pattern];
-    }
+    sSongPos[ch] = 0;
+    sPattern[ch] = sSong.tracks[ch][0].pattern;
+    sPatternPos[ch] = 0;
     sInstrumentPos[ch] = 0;
-    sLineCounter[ch] = songSpeed << sSong.tracks[ch][0].speed;
+    sSongPos[ch] = songSpeed << sSong.tracks[ch][0].speed;
   }
 }
 
@@ -451,7 +447,7 @@ void playerTick() {
   sFrameCounter++;
 }
 
-void playerPlay() {
+void playerPlay(int songPos, int patternPos) {
   playerInit();
   sIsPlaying = true;
 }
@@ -1475,15 +1471,15 @@ static u8 getTableData(u8 _tableKind, u16 _table, u8 _tableColumn) { return 0; }
 static u8 setTableData(u8 _tableKind, u16 _table, u8 _tableColumn, u8 _data) { return 0; }
 
 static u8 getPlayerSongRow(u8 _channelNum) {
-  return 0; // TODO: Implement
+  return sSongPos[_channelNum];
 }
 
 static u8 getPlayerPatternRow(u8 _channelNum) {
-  return 0; // TODO: Implement
+  return sPatternPos[_channelNum];
 }
 
 static u8 getPlayerPattern(u8 _channelNum) {
-  return 0; // TODO: Implement
+  return sPattern[_channelNum];
 }
 
 static u8 getPlayerInstrumentRow(u8 _channelNum) {
@@ -1501,11 +1497,11 @@ static void plonk(u8 _note, u8 _channelNum, u8 _instrument, bool _isDown) {
 }
 
 static void playSongFrom(u8 _songRow, u8 _songColumn, u8 _patternRow, u8 _patternColumn) {
-  // TODO: Implement
+  playerPlay(_songRow, _patternRow);
 }
 
 static void playPatternFrom(u8 _songRow, u8 _songColumn, u8 _patternRow, u8 _patternColumn) {
-  // TODO: Implement
+  //playerPlayPattern(_songRow, _patternRow);
 }
 
 static bool isPlaying() {

@@ -915,7 +915,10 @@ static u8 getPatternData(u8 _channelNum, u8 _patternNum, u8 _patternRow, u8 _pat
     line = &sSong.pattern34[_patternNum][_patternRow];
   }
   switch (_patternColumn) {
-    case 0: return line->note;
+    case 0: {
+      if (line->note == 0x1F) return 255; // Note off
+      return line->note;
+    }
     case 2: return line->instrument;
     default:return ' ';
   } /* switch */
@@ -964,7 +967,15 @@ static u8 setPatternData(u8 _channelNum, u8 _patternNum, u8 _patternRow, u8 _pat
   switch (_patternColumn) {
     case 0: {
       // Note
-      line->note = _data & 0x1f;
+      if (_data == 0xff) {
+        // Note off
+        line->note = 0x1F;
+      } else if (_data == 0) {
+        // No note
+        line->note = 0;
+      } else {
+        line->note = (_data % 30) + 1;
+      }
       line->instrument = _instrument & 0x7;
       break;
     }
@@ -1524,6 +1535,7 @@ static u8 getPlayerInstrument(u8 _channelNum) {
 }
 
 static void plonk(u8 _note, u8 _channelNum, u8 _instrument, bool _isDown) {
+  if (_note == 0xFF) _isDown = false;
   playerPlayNote(_channelNum, _note, _instrument, _isDown);
 }
 

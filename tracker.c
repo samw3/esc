@@ -2161,7 +2161,7 @@ ACTION(ACTION_INSERT, TRACKER_EDIT_ANY) {
     return;
   }
   switch (sTrackerState) {
-    case TRACKER_EDIT_SONG: con_error(sChip->insertSongRow(sSongY));
+    case TRACKER_EDIT_SONG: con_error(sChip->insertSongRow(sSelectedChannel, sSongY));
       break;
     case TRACKER_EDIT_PATTERN: con_error(sChip->insertPatternRow(sSelectedChannel, sSelectedPattern, sPatternY));
       break;
@@ -2200,7 +2200,7 @@ ACTION(ACTION_DELETE, TRACKER_EDIT_ANY) {
     return;
   }
   switch (sTrackerState) {
-    case TRACKER_EDIT_SONG: con_error(sChip->deleteSongRow(sSongY));
+    case TRACKER_EDIT_SONG: con_error(sChip->deleteSongRow(sSelectedChannel, sSongY));
       if (sSongY >= sChip->getNumSongRows()) {
         sSongY = sChip->getNumSongRows() - 1;
       }

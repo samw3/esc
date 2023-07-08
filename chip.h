@@ -65,11 +65,11 @@ typedef struct {
 
   ChipError (*saveSong)(const char *filename);
 
-  ChipError (*insertSongRow)(u8 _atSongRow);
+  ChipError (*insertSongRow)(u8 _channelNum, u8 _songRow);
 
   ChipError (*addSongRow)();
 
-  ChipError (*deleteSongRow)(u8 _songRow);
+  ChipError (*deleteSongRow)(u8 _channelNum, u8 _songRow);
 
   ChipError (*insertPatternRow)(u8 _channelNum, u8 _patternNum, u8 _atPatternRow);
 

@@ -696,7 +696,7 @@ static ChipError saveSong(const char *filename) {
   return NO_ERR;
 } /* saveSong */
 
-static ChipError insertSongRow(u8 _atSongRow) {
+static ChipError insertSongRow(u8 _channelNum, u8 _atSongRow) {
   if (songlen < 256) {
     memmove(&song[_atSongRow + 1],
             &song[_atSongRow + 0],
@@ -719,7 +719,7 @@ static ChipError addSongRow() {
   }
 }
 
-static ChipError deleteSongRow(u8 _songRow) {
+static ChipError deleteSongRow(u8 _channelNum, u8 _songRow) {
   if (songlen > 1) {
     memmove(&song[_songRow + 0],
             &song[_songRow + 1],

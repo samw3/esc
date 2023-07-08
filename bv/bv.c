@@ -433,7 +433,7 @@ void playerTick() {
 
     // Apply Vibrato
     if (sVibratoDepth[ch] != 0) {
-      s16 vibrato = (sVibratoLookup[sFrameCounter & 0x0F] << sVibratoDepth[ch]);;
+      s16 vibrato = (sVibratoLookup[sFrameCounter & 0x0F] << sVibratoDepth[ch]);
       if (sVibratoMode[ch]) {
         *freq += vibrato;
       } else {
@@ -506,14 +506,14 @@ void sidTick(ChipSample *_buf, int _len) {
       pins &= ~M6581_RW;
       pins &= ~M6581_ADDR_MASK;
       pins |= clocks;
-      M6581_SET_DATA(pins, sSidRegisters[clocks]);
+      M6581_SET_DATA(pins, sSidRegisters[clocks])
       pins = m6581_tick(&sid, pins);
       // con_msgf("%02X > %02X", clocks, sSidRegisters[clocks]);
     } else {
       // Do nothing to SID
       pins &= ~M6581_CS;
       pins |= M6581_RW;
-      M6581_SET_DATA(pins, 0);
+      M6581_SET_DATA(pins, 0)
       pins = m6581_tick(&sid, pins);
     }
     if (pins & M6581_SAMPLE) {
@@ -530,6 +530,14 @@ static const char *getChipId() {
   return "BV";
 }
 
+static SongTrack newSongTrack() {
+  return (SongTrack) {
+      .pattern = 0,
+      .speed = SongTrackSpeed_Normal,
+      .options = SongTrackOptions_PlayOnce,
+  };
+}
+
 static ChipError newSong() {
   memset(&sSong, 0, sizeof(Song));
 
@@ -542,9 +550,7 @@ static ChipError newSong() {
   sSong.tempo = 2;
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 20; j++) {
-      sSong.tracks[i][j].pattern = 0;
-      sSong.tracks[i][j].speed = SongTrackSpeed_Normal;
-      sSong.tracks[i][j].options = SongTrackOptions_PlayOnce;
+      sSong.tracks[i][j] = newSongTrack();
     }
   }
   memset(&sSong.pattern44, 0, sizeof(sSong.pattern44));
@@ -650,21 +656,6 @@ static ChipError saveSong(const char *filename) {
     return ERR_FILE_WRITE;
   }
   fclose(file);
-  return NO_ERR;
-}
-
-static ChipError insertSongRow(u8 _atSongRow) {
-  // TODO: Implement
-  return NO_ERR;
-}
-
-static ChipError addSongRow() {
-  // TODO: Implement
-  return NO_ERR;
-}
-
-static ChipError deleteSongRow(u8 _songRow) {
-  // TODO: Implement
   return NO_ERR;
 }
 
@@ -818,6 +809,26 @@ static u16 getNumSongRows() {
 
 static u8 getNumSongDataColumns(u8 _channelNum) {
   return 5;
+}
+
+static ChipError insertSongRow(u8 _channelNum, u8 _atSongRow) {
+  for (int i = getNumSongRows() - 1; i > _atSongRow; i--) {
+    sSong.tracks[_channelNum][i] = sSong.tracks[_channelNum][i - 1];
+  }
+  sSong.tracks[_channelNum][_atSongRow] = newSongTrack();
+  return NO_ERR;
+}
+
+static ChipError addSongRow() {
+  return ERR_NOT_SUPPORTED;
+}
+
+static ChipError deleteSongRow(u8 _channelNum, u8 _songRow) {
+  for (int i = _songRow; i < getNumSongRows() - 1; i++) {
+    sSong.tracks[_channelNum][i] = sSong.tracks[_channelNum][i + 1];
+  }
+  sSong.tracks[_channelNum][getNumSongRows() - 1] = newSongTrack();
+  return NO_ERR;
 }
 
 static ChipDataType getSongDataType(u8 _songRow, u8 _channelNum, u8 _songDataColumn) {

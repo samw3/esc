@@ -1985,7 +1985,16 @@ ACTION(ACTION_PLAY_STOP_SONG, TRACKER_EDIT_ANY) {
     sChip->stop();
   } else {
     sChip->stop();
-    sChip->playSongFrom(sSongY, 0, 0, 0);
+    sChip->playSongFrom(sSongY, sSongX, sPatternY, sPatternX);
+  }
+}
+
+ACTION(ACTION_PLAY_STOP_PATTERN, TRACKER_EDIT_ANY) {
+  if (sChip->isPlaying()) {
+    sChip->stop();
+  } else {
+    sChip->stop();
+    sChip->playPatternFrom(sSongY, sSongX, sPatternY, sPatternX);
   }
 }
 
@@ -2446,6 +2455,7 @@ void tracker_action(Action _action, TrackerState _state) {
   HANDLE_ACTION(ACTION_NEXT_SECTION, TRACKER_EDIT_ANY);
   HANDLE_ACTION(ACTION_PREV_SECTION, TRACKER_EDIT_ANY);
   HANDLE_ACTION(ACTION_PLAY_STOP_SONG, TRACKER_EDIT_ANY);
+  HANDLE_ACTION(ACTION_PLAY_STOP_PATTERN, TRACKER_EDIT_ANY);
   HANDLE_ACTION(ACTION_MOVE_LEFT, TRACKER_EDIT_INSTRUMENT);
   HANDLE_ACTION(ACTION_MOVE_RIGHT, TRACKER_EDIT_INSTRUMENT);
   HANDLE_ACTION(ACTION_MOVE_UP, TRACKER_EDIT_INSTRUMENT);

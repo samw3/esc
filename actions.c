@@ -31,6 +31,7 @@ ActionTableEntry actions[] = {
     {ACTION_NEXT_SECTION,          TRACKER_EDIT_ANY,        SDL_SCANCODE_GRAVE,        KMOD_NONE},
     {ACTION_PREV_SECTION,          TRACKER_EDIT_ANY,        SDL_SCANCODE_GRAVE,        KMOD_SHIFT},
     {ACTION_PLAY_STOP_SONG,        TRACKER_EDIT_ANY,        SDL_SCANCODE_RETURN,       KMOD_NONE},
+    {ACTION_PLAY_STOP_PATTERN,     TRACKER_EDIT_ANY,        SDL_SCANCODE_RETURN,       KMOD_SHIFT},
 
     {ACTION_WAV_EXPORT,            TRACKER_EDIT_ANY,        SDL_SCANCODE_W,            KMOD_SHIFT},
     {ACTION_SAVE,                  TRACKER_EDIT_ANY,        SDL_SCANCODE_S,            KMOD_SHIFT},
@@ -79,6 +80,7 @@ char *actionNames[] = {
     "Next Channel",
     "Prev Channel",
     "Play Stop Song",
+    "Play Stop Pattern",
     "Next Instrument Param",
     "Prev Instrument Param",
     "Wav Export",

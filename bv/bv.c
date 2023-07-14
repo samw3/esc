@@ -289,8 +289,10 @@ static u8 sFrameCounter = 0;
 static u8 *sInstrumentSet = (u8 *) &(sInstruments[0]);
 
 void playerInit() {
-  u8 songSpeed = (sSong.tempo + 3) << 2;
-  for (s8 i = 3; i >= 0; --i) sSongSpeeds[i] = songSpeed << i;
+  u8 songSpeed = (sSong.tempo + 1) << 1;
+  for (s8 i = 3; i >= 0; --i) {
+    sSongSpeeds[i] = songSpeed << i;
+  }
   for (s8 ch = 2; ch >= 0; --ch) {
     sSongTick[ch] = 0;
     sSongPos[ch] = 0;
@@ -359,8 +361,8 @@ void playerTick() {
           }
           SongTrack *track = &sSong.tracks[ch][sSongPos[ch]];
         }
-        sSongTick[ch]--;
       }
+      sSongTick[ch]--;
     }
   }
   // Tick instruments

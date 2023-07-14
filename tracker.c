@@ -1073,7 +1073,6 @@ int tracker_drawSongEditor(int _x, int _y, int _height) {
     if (songRow >= songOffset && songRow - songOffset < _height) {
       con_gotoXY(_x, _y + 1 + songRow - songOffset);
 
-      // attron(A_DIM);
       hit = addHit(rectRel(3), TRACKER_EDIT_ANY);
       hit->trackerState = TRACKER_EDIT_SONG;
       hit->songY = songRow;

@@ -240,6 +240,7 @@ void sidReset();
 #define CmdNoteOffJmpPos 0xFF // 11111111
 
 #define InstrPosMask 0x1F
+#define NoteOffSentinel 0x1F
 
 static const u8 sFreqTablePalLo[96] = {
     // Bass
@@ -269,6 +270,7 @@ static const s8 sVibratoLookup[16] = {
 };
 
 static bool sIsPlaying = false;
+static u8 sSongTick[3] = {0};
 static u8 sSongPos[3] = {0};
 static u8 sPatternPos[3] = {0};
 static u8 sPattern[3] = {0};
@@ -288,13 +290,13 @@ static u8 *sInstrumentSet = (u8 *) &(sInstruments[0]);
 
 void playerInit() {
   u8 songSpeed = (sSong.tempo + 3) << 2;
-  for (s8 i = 3; i >= 0; --i) sSongSpeeds[i] = songSpeed << sSong.tracks[i][0].speed;
+  for (s8 i = 3; i >= 0; --i) sSongSpeeds[i] = songSpeed << i;
   for (s8 ch = 2; ch >= 0; --ch) {
+    sSongTick[ch] = 0;
     sSongPos[ch] = 0;
     sPattern[ch] = sSong.tracks[ch][0].pattern;
     sPatternPos[ch] = 0;
     sInstrumentPos[ch] = 0;
-    sSongPos[ch] = songSpeed << sSong.tracks[ch][0].speed;
   }
 }
 
@@ -325,6 +327,41 @@ void playerPlayNote(u8 _channel, u8 _note, u8 _instrument, bool _isDown) {
 void playerTick() {
   if (sIsPlaying) {
     // Trigger intruments from song lines
+    for (int ch = 0; ch < 3; ++ch) {
+      if (sSongTick[ch] == 0) {
+        // Get pattern line
+        SongLine *line;
+        if (sSong.meter == SongMeter_4_4) {
+          line = &sSong.pattern44[sPattern[ch]][sPatternPos[ch]];
+        } else {
+          line = &sSong.pattern34[sPattern[ch]][sPatternPos[ch]];
+        }
+        // Trigger instrument
+        if (line->note == NoteOffSentinel) {
+          playerPlayNote(ch, 0, line->instrument, false);
+        } else if (line->note != 0) {
+          playerPlayNote(ch, line->note, line->instrument, true);
+        }
+        SongTrack *track = &sSong.tracks[ch][sSongPos[ch]];
+        sSongTick[ch] = sSongSpeeds[track->speed];
+      } else {
+        if (sSongTick[ch] == 1) {
+          // Increment pattern position
+          sPatternPos[ch]++;
+          if ((sSong.meter == SongMeter_4_4 && sPatternPos[ch] >= 16) ||
+              (sSong.meter == SongMeter_3_4 && sPatternPos[ch] >= 12)) {
+            sPatternPos[ch] = 0;
+            // Increment song position
+            sSongPos[ch]++;
+            if (sSongPos[ch] == 20) sSongPos[ch] = 0;
+            SongTrack *track = &sSong.tracks[ch][sSongPos[ch]];
+            sPattern[ch] = track->pattern;
+          }
+          SongTrack *track = &sSong.tracks[ch][sSongPos[ch]];
+        }
+        sSongTick[ch]--;
+      }
+    }
   }
   // Tick instruments
   for (u8 ch = 0; ch < 3; ++ch) {
@@ -447,7 +484,14 @@ void playerTick() {
 }
 
 void playerPlay(int songPos, int patternPos) {
-  // TODO: Implement
+  con_msgf("playerPlay(%d, %d)", songPos, patternPos);
+  playerInit();
+  for (int i = 0; i < 3; ++i) {
+    sSongPos[i] = songPos;
+    sPatternPos[i] = patternPos;
+    sPattern[i] = sSong.tracks[i][sSongPos[i]].pattern;
+  }
+  sIsPlaying = true;
 }
 
 static void playerPlayPattern(u8 songRow, u8 patternRow) {

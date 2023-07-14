@@ -806,6 +806,25 @@ static ChipMetaDataEntry metaData[] =
             .stringValue = {},
             .textEdit = NULL,
         },
+        {
+            .name = "Tempo",
+            .type = CMDT_OPTIONS,
+            .min = 0,
+            .max = 7,
+            .value = 3,
+            .options = {
+                "250(PAL)/300(NTSC)",
+                "187.5(PAL)/225(NTSC)",
+                "150(PAL)/180(NTSC)",
+                "125(PAL)/150(NTSC)",
+                "107.14(PAL)/128.57(NTSC)",
+                "93.75(PAL)/112.5(NTSC)",
+                "83.33(PAL)/100(NTSC)",
+                "75(PAL)/90(NTSC)"
+            },
+            .stringValue = {},
+            .textEdit = NULL,
+        }
     };
 
 static u8 getNumMetaData() {
@@ -813,7 +832,22 @@ static u8 getNumMetaData() {
 }
 
 static ChipMetaDataEntry *getMetaData(u8 _index) {
-  return &metaData[_index];
+  ChipMetaDataEntry *entry = &metaData[_index];
+  switch (_index) {
+    case 0:entry->value = sSong.ch0Octave;
+      break;
+    case 1:entry->value = sSong.ch1Octave;
+      break;
+    case 2:entry->value = sSong.ch2Octave;
+      break;
+    case 3:entry->value = sSong.meter;
+      break;
+    case 4:entry->value = sSong.loopSong;
+      break;
+    case 5:entry->value = sSong.tempo;
+      break;
+  }
+  return entry;
 }
 
 static ChipError setMetaData(u8 _index, ChipMetaDataEntry *entry) {
@@ -827,6 +861,8 @@ static ChipError setMetaData(u8 _index, ChipMetaDataEntry *entry) {
     case 3:sSong.meter = entry->value;
       break;
     case 4:sSong.loopSong = entry->value;
+      break;
+    case 5:sSong.tempo = entry->value;
       break;
   }
   return NO_ERR;
@@ -973,7 +1009,7 @@ static u8 getPatternData(u8 _channelNum, u8 _patternNum, u8 _patternRow, u8 _pat
   }
   switch (_patternColumn) {
     case 0: {
-      if (line->note == 0x1F) return 255; // Note off
+      if (line->note == NoteOffSentinel) return 255; // Note off
       return line->note;
     }
     case 2: return line->instrument;

@@ -1499,6 +1499,13 @@ void tracker_songMoveRight() {
   } while (sChip->getSongDataType(sSongY, sSelectedChannel, sSongX) == CDT_LABEL);
 }
 
+void tracker_songMoveDown() {
+  sSongY++;
+  if (sSongY == sChip->getNumSongRows()) {
+    sSongY = 0;
+  }
+}
+
 void tracker_patternMoveLeft() {
   do {
     if (sPatternX == 0) {
@@ -1705,7 +1712,9 @@ bool tracker_hexKey(int _hex) {
       if (sChip->getSongDataType(sSongY, sSelectedChannel, sSongX) == CDT_HEX) {
         sChip->setSongData(sSongY, sSelectedChannel, sSongX, _hex);
         sSelectedPattern = sChip->getPatternNum(sSongY, sSelectedChannel);
-        tracker_songMoveRight();
+        // TODO: Make this an option
+        // tracker_songMoveRight();
+        tracker_songMoveDown();
         return true;
       }
       break;

@@ -53,6 +53,12 @@ Rect rectRel(int _len) {
   };
 }
 
+Rect rectFrom(int _start) {
+  return (Rect) {
+      _start, con_y(), con_x(), con_y()
+  };
+}
+
 bool rectHit(Rect _rect, int _x, int _y) {
   return _rect.x1 <= _x &&
          _rect.x2 >= _x &&
@@ -81,6 +87,7 @@ typedef struct {
   int selectedInstrument;
   int selectedTableKind;
   int tableX;
+  int metaDataY;
   TextEdit *textEdit;
 } Hit;
 
@@ -102,7 +109,7 @@ Hit *addHit(Rect _hitRect, TrackerState _validStates) {
       -1, -1, -1,
       -1, -1, -1,
       -1, -1, -1, -1,
-      -1, -1,
+      -1, -1, -1,
       NULL
   };
   return &sHits[sHitPos - 1];
@@ -1201,6 +1208,7 @@ int tracker_drawMetaData(int _x, int _y, int _width) {
         }
       }
       case CMDT_OPTIONS: {
+        int startX = con_x();
         con_putc('[');
         if (sMetaDataY == i && sTrackerState == TRACKER_EDIT_META_DATA
             ) {
@@ -1216,6 +1224,9 @@ int tracker_drawMetaData(int _x, int _y, int _width) {
           con_setAttrib(0x4F);
         }
         con_putc(']');
+        hit = addHit(rectFrom(startX), TRACKER_EDIT_META_DATA);
+        hit->trackerState = TRACKER_EDIT_META_DATA;
+        hit->metaDataY = i;
       }
       case CMDT_HEX:break; // TODO: Implement
       case CMDT_DECIMAL:break; // TODO: Implement
@@ -1846,6 +1857,9 @@ void tracker_mouseDownAt(int _x, int _y) {
       }
       if (hit.tableX >= 0) {
         sTableX = hit.tableX;
+      }
+      if (hit.metaDataY >= 0) {
+        sMetaDataY = hit.metaDataY;
       }
     }
   }

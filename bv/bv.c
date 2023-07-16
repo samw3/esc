@@ -359,7 +359,6 @@ void playerTick() {
             SongTrack *track = &sSong.tracks[ch][sSongPos[ch]];
             sPattern[ch] = track->pattern;
           }
-          SongTrack *track = &sSong.tracks[ch][sSongPos[ch]];
         }
       }
       sSongTick[ch]--;

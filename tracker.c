@@ -566,7 +566,7 @@ void tracker_onChangeInstrumentName(TextEdit *_te, TrackerTextEditKey _exitKey) 
 
 void tracker_init() {
   sChip->init();
-  sChip->loadSong(sFilename);
+  con_error(sChip->loadSong(sFilename));
   sSelectedPattern = sChip->getPatternNum(sSongY, sSelectedChannel);
 
   int count = sChip->getNumTableKinds();
@@ -2408,7 +2408,6 @@ ACTION(ACTION_PREV_TABLE_COLUMN, TRACKER_EDIT_TABLE) {
 
 ACTION(ACTION_SHOW_KEYS, TRACKER_EDIT_ANY) {
   sbShowKeys = !sbShowKeys;
-  con_msgf("sbShowKeys : %s", (sbShowKeys ? "true" : "false"));
 }
 
 ACTION(ACTION_MOVE_LEFT, TRACKER_EDIT_META_DATA) {

@@ -1,5 +1,6 @@
 
 #include "../chip.h"
+#include "../console.h"
 #include <stdio.h>
 #include <ctype.h>
 #include <string.h>
@@ -1089,6 +1090,10 @@ static const char *getPatternHelp(u8 _channelNum, u8 _patternNum, u8 _patternRow
   }
 }   /* getPatternHelp */
 
+static void preferredWindowSize(u32 *_width, u32 *_height) {
+  *_width = 1280;
+  *_height = 632;
+}
 
 ChipInterface chip_lft = {
     // Tracker Commands
@@ -1188,6 +1193,9 @@ ChipInterface chip_lft = {
     isPlaying,
     stop,
     silence,
-    getSamples
+    getSamples,
+
+    // Misc
+    preferredWindowSize
 };
 

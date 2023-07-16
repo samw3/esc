@@ -94,7 +94,7 @@ static int sScreenWidth = STARTING_SCREEN_WIDTH;
 static int sScreenHeight = STARTING_SCREEN_HEIGHT;
 static int sActualScreenWidth, sActualScreenHeight;
 static int sScreenOffsetX, sScreenOffsetY;
-char sMessages[NUM_MESSAGES][256];
+ConsoleMessage sMessages[NUM_MESSAGES];
 int sMessagesBottom = NUM_MESSAGES - 1;
 int sMessagesPos = NUM_MESSAGES - 1;
 
@@ -104,49 +104,70 @@ int _error(const char *_msg) {
 }
 
 /**
- *  Adds a message to the console buffer
+ *  Adds a message to the console buffer with a specific attribute
+ * @param _attrib Attributes to use (see con_setAttrib)
+ * @param _message Message to add
  */
-void con_msg(char *_message) {
+void con_attrMsg(u32 _attrib, char *_message) {
   if (_message == NULL) {
     return;
   }
-  strncpy(sMessages[sMessagesBottom], _message, 255);
-  sMessages[sMessagesBottom][255] = '\0';
+  strncpy(sMessages[sMessagesBottom].message, _message, 255);
+  sMessages[sMessagesBottom].message[255] = '\0';
+  sMessages[sMessagesBottom].attrib = _attrib;
   sMessagesBottom = (sMessagesBottom - 1 + NUM_MESSAGES) % NUM_MESSAGES;
+}
+
+/**
+ *  Adds a message to the console buffer
+ */
+void con_msg(char *_message) {
+  con_attrMsg(0x07, _message);
 }
 
 /**
  *  Adds a ChipError message to the console buffer
  */
 void con_error(ChipError _error) {
-  con_msg((char *) _error);
+  con_attrMsg(0x09, (char *) _error);
 }
 
 /**
- * Printf's a message to the console buffer
+ *  Adds a warning message to the console buffer
  */
-void con_msgf(const char *_format, ...) {
+void con_warn(char *_warning) {
+  con_attrMsg(0x0B, _warning);
+}
+
+/**
+ * Printf's a message to the console buffer with a specific attribute
+ * @param _attrib Attributes to use (see con_setAttrib)
+ * @param _format Format string
+ * @param ... Arguments
+ */
+void con_attrMsgf(u32 _attrib, char *_format, ...) {
   va_list args;
   va_start(args, _format);
-  vsnprintf(sMessages[sMessagesBottom], 255, _format, args);
+  vsnprintf(sMessages[sMessagesBottom].message, 255, _format, args);
   va_end(args);
+  sMessages[sMessagesBottom].attrib = _attrib;
   sMessagesBottom = (sMessagesBottom - 1 + NUM_MESSAGES) % NUM_MESSAGES;
 }
 
 /**
  *  Gets the most recent message
  */
-char *con_getMostRecentMessage() {
+ConsoleMessage *con_getMostRecentMessage() {
   sMessagesPos = sMessagesBottom + 1;
-  return sMessages[sMessagesPos];
+  return &sMessages[sMessagesPos];
 }
 
 /**
  *  Get the next recent message
  */
-char *con_getNextMessage() {
+ConsoleMessage *con_getNextMessage() {
   sMessagesPos = (sMessagesPos + 1) % NUM_MESSAGES;
-  return sMessages[sMessagesPos];
+  return &sMessages[sMessagesPos];
 }
 
 /**
@@ -565,7 +586,7 @@ int main(int argc, char *argv[]) {
 
   // Init messages array
   for (size_t i = 0; i < 256; i++) {
-    sMessages[i][0] = 0;
+    sMessages[i].message[0] = 0;
   }
   if (!tracker_setChipName(argv[1])) {
     err(1, "Cannot find chip: %s", argv[1]);

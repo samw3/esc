@@ -10,35 +10,58 @@
 #define STARTING_SCREEN_HEIGHT (720)
 #define NUM_MESSAGES (256)
 
+typedef struct {
+  char message[256];
+  u32 attrib;
+} ConsoleMessage;
+
 /**
  *  Gets the number of columns allocated for the screen
  */
 int con_columns();
 
 /**
+ *  Adds a message to the console buffer with the specified attribute
+ * @param _attrib Attribute to use (see con_setAttrib)
+ * @param _message String to print
+ */
+void con_attrMsg(u32 _attrib, char *_message);
+
+/**
  *  Adds a message to the console buffer
  */
 void con_msg(char *_message);
+#define con_msgf(f, ...) con_attrMsgf(0x07, f, __VA_ARGS__)
 
 /**
  *  Adds a ChipError message to the console buffer
  */
 void con_error(ChipError _error);
+#define con_errorf(f, ...) con_attrMsgf(0x09, f, __VA_ARGS__)
 
 /**
- * Printf's a message to the console buffer
+ *  Adds a warning message to the console buffer
  */
-void con_msgf(const char *format, ...);
+void con_warn(char *_message);
+#define con_warnf(f, ...) con_attrMsgf(0x0B, f, __VA_ARGS__)
+
+/**
+ * Printf's a message to the console buffer with a specific attribute
+ * @param _attrib Attributes to use (see con_setAttrib)
+ * @param _format Format string
+ * @param ... Arguments
+ */
+void con_attrMsgf(u32 _attrib, char *_format, ...);
 
 /**
  *  Gets the most recent message
  */
-char *con_getMostRecentMessage();
+ConsoleMessage *con_getMostRecentMessage();
 
 /**
  *  Get the next recent message
  */
-char *con_getNextMessage();
+ConsoleMessage *con_getNextMessage();
 
 /**
  *  Gets the number of rows allocated for the screen

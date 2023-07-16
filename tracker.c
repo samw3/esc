@@ -1148,10 +1148,13 @@ void tracker_drawMessages(int _x, int _y, int _height) {
   con_setAttrib(0x08);
   con_printXY(_x, _y, "MESSAGES");
 
-  con_setAttrib(0x07);
-  con_printXY(_x, _y + _height, con_getMostRecentMessage());
+  ConsoleMessage *message = con_getMostRecentMessage();
+  con_setAttrib(message->attrib);
+  con_printXY(_x, _y + _height, message->message);
   for (int i = _height - 1; i > 0; i--) {
-    con_printXY(_x, _y + i, con_getNextMessage());
+    message = con_getNextMessage();
+    con_setAttrib(message->attrib);
+    con_printXY(_x, _y + i, message->message);
   }
 }
 
@@ -2130,7 +2133,7 @@ ACTION(ACTION_WAV_EXPORT, TRACKER_EDIT_ANY) {
   FILE *f;
   f = fopen(filename, "w");
   if (!f) {
-    con_msgf("EXPORT ERROR!\n");
+    con_error("EXPORT ERROR!\n");
     return;
   }
   fprintf(f, "RIFF");

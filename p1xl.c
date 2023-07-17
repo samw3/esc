@@ -1595,6 +1595,11 @@ static const char *getPatternHelp(u8 _channelNum, u8 _patternNum, u8 _patternRow
   return ""; // TODO: Implement
 }
 
+static void preferredWindowSize(u32 *_width, u32 *_height) {
+  *_width = 1280;
+  *_height = 632;
+}
+
 ChipInterface chip_p1xl = {
     // Tracker Commands
     getChipId,
@@ -1693,6 +1698,9 @@ ChipInterface chip_p1xl = {
     isPlaying,
     stop,
     silence,
-    getSamples
+    getSamples,
+
+    // Misc
+    preferredWindowSize
 };
 
